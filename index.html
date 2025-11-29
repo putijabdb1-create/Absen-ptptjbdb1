@@ -100,7 +100,7 @@
     }
     input[readonly] { background: #f3f4f6; }
 
-    /* WARNA KETERANGAN */
+    /* warna dropdown keterangan */
     #ket { transition: background 0.2s, color 0.2s, border-color 0.2s; color:#111827; }
     .status-masuk { background:#dcfce7!important; border-color:#16a34a!important; color:#14532d!important; }
     .status-libur { background:#fee2e2!important; border-color:#dc2626!important; color:#7f1d1d!important; }
@@ -155,6 +155,7 @@
     .btn-pulang { background:#10b981; color:white; }
     .btn-login  { background:#0ea5e9; color:white; }
     .btn-logout { background:#ef4444; color:white; }
+    .btn-rekap  { background:#0f766e; color:white; }
     .btn:hover  { filter: brightness(1.05); }
 
     .small { font-size: 12px; color: #6b7280; }
@@ -254,7 +255,7 @@
           font-size:13px;
           resize:vertical;
           margin-bottom:10px;
-        " placeholder="Note: Sehat,,Masuk Siang,sakit,ijin keluarga,dll"></textarea>
+        " placeholder="Contoh: batuk ringan, kurang sehat, ada urusan keluarga, dll."></textarea>
 
         <label>Foto Absensi</label>
         <video id="video" autoplay playsinline></video>
@@ -269,6 +270,18 @@
         <button class="btn btn-masuk"  type="button" onclick="kirimAbsensi('masuk')">✅ Absen Masuk</button>
         <button class="btn btn-pulang" type="button" onclick="kirimAbsensi('pulang')">🏁 Absen Pulang</button>
 
+        <!-- REKAP ABSEN -->
+        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #e5e7eb;">
+          <label>Rekap Absensi (maksimal 30 hari)</label>
+          <div style="display:flex; gap:8px; margin-bottom:6px;">
+            <input type="date" id="rekapFrom" style="flex:1; padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
+            <input type="date" id="rekapTo"   style="flex:1; padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
+          </div>
+          <button class="btn btn-rekap" type="button" onclick="lihatRekap()">📊 Lihat Rekap</button>
+          <div id="rekapInfo" class="small" style="margin-top:6px;"></div>
+          <div id="rekapDetail" class="small" style="margin-top:4px; max-height:180px; overflow-y:auto;"></div>
+        </div>
+
         <div id="statusMsg" class="small"></div>
       </div>
     </div>
@@ -279,6 +292,7 @@
   // Format 1 baris user:
   // "username|password|nik|nama|divisi|defaultArea"
   const USER_LINES = [
+    // CONTOH – SILAKAN SESUAIKAN
     "PTJ_Arip007|alvaro007|15889311|ARIP RAHMATULLOH|PIC|CMI",
     "PTJ_U_Setiadi|30223023|15889310|UUS SETIADI|PIC|BTJ",
     "PTJ_Bob1990|TE1990|BELUM ADA|ASEP SAEPUDIN|PIC|CMI",
@@ -376,16 +390,32 @@
 	"PTJ_Opi012|Toren1234|16942370|OPIK IRAWAN|IOAN|KNG",
 	"PTJ_Refli012|Putija@12|16023016|REFLI PITDATULLOH|PSB|CMI",
 	"PTJ_Puad98|Telkom123|16983641|PUAD TOHAWI|PSB|CLL",
-	"PTJ_Dendi@01|1052002|(Belum Ada)|DENDI MANDIRI|PSB|BTJ",
 	"PTJ_Pathudin013|Azalea13|16962281|Pathudin|IOAN|KNG",
 	"PTJ_Azmi15|Telkom123|16962282|Azmi rifai|IOAN|KNG",
 	"PTJ_ErikoRamdani001|Telkom123|BELUM ADA|ERICO RAMDANI|PSB|CLL",
 	"PTJ_Febri24|Annuaink100|16900564|FEBRI RIYANDI|IOAN|KNG",
-	"PTJ_Ari0079|11223344|16050178|Ari Anggara|IOAN|KNG"
+	"PTJ_Ari0079|11223344|16050178|ARI ANGGARA|IOAN|KNG",
+	"Zahdan17|461147zz|16800322|AGUS SAHDAN|IOAN|KNG",
+	"DANI001|PTJKNG001|16022092|MUHAMAD RAMDANI|PSB|KNG",
+	"IMAM001|PTJKNG001|16901520|MOCHAMMAD IMAM TAOFIK|PSB|KNG",
+	"IPAN001|PTJKNG001|16050679|IPAN GILANG RAMADAN|PSB|KNG",
+	"RAFI001|PTJKNG001|16050313|RAFI ARIEL NUGRAHA|PSB|KNG",
+	"SECHAN001|PTJKNG001|16040915|SECHAN BUKHORI|PSB|KNG",
+	"AGUS001|PTJKNG001|16031512|AGUS HAMDANI|PSB|KNG",
+	"BAGUS001|PTJKNG001|16003512|BAGUS PRASETIO|PSB|KNG",
+	"FAHRY001|PTJKNG001|Belum Ada|FAHRY ADITYA ASRIZAL|PSB|KNG",
+	"DADI001|PTJKNG001|16952927|DADI APRIADI|PSB|KNG",
+	"IRFAN001|PTJKNG001|16060537|MOHAMMAD IRFAN HAKIM|PSB|KNG",
+	"SYAHRUL001|PTJKNG001|16050886|SYAHRUL RAMDHAN AT'THORIQ|PSB|KNG",
+	"DONI001|PTJKNG001|16974498|MUHAMAD RAMDONI|PSB|KNG",
+	"APRI001|PTJKNG001|Belum Ada|A CANDRA KOSWARA|PROJEK|KNG",
+	"AZHAR001|PTJKNG001|16973839|M. CHOIRUL AZHARI ROSID|PIC|KNG",
+	"DADINUR001|PTJKNG001|16890989|DADI NURYADI|PIC|KNG",
+	"Dendi@01|1052002|BELUM ADA|DENDI MANDIRI|PSB|BTJ"
+	
     // tambahkan user lain di sini...
   ];
 
-  // mapping USER_LINES -> USERS & PEGAWAI
   const USERS = USER_LINES.map(line => {
     const [username, password, nik, nama, divisi, area] = line.split("|");
     return { username, password, nik, nama, divisi, defaultArea: area };
@@ -414,6 +444,11 @@
   const statusMsg    = document.getElementById("statusMsg");
   const noteInput    = document.getElementById("note");
 
+  const rekapFrom    = document.getElementById("rekapFrom");
+  const rekapTo      = document.getElementById("rekapTo");
+  const rekapInfo    = document.getElementById("rekapInfo");
+  const rekapDetail  = document.getElementById("rekapDetail");
+
   const loginSection = document.getElementById("loginSection");
   const absenSection = document.getElementById("absenSection");
   const loginInfo    = document.getElementById("loginInfo");
@@ -426,7 +461,6 @@
     const divisi = divisiSelect.value;
     namaSelect.innerHTML = '<option value="">-- Pilih Pegawai --</option>';
     nikInput.value = "";
-
     if (!divisi) return;
 
     PEGAWAI.forEach(p => {
@@ -445,6 +479,29 @@
   }
   divisiSelect.addEventListener("change", refreshNamaOptions);
   namaSelect.addEventListener("change", onNamaChange);
+
+  // ===== Warna dropdown Keterangan =====
+  function updateKetClass() {
+    ketSelect.classList.remove("status-masuk","status-libur","status-cuti","status-sakit");
+    if (ketSelect.value === "masuk")      ketSelect.classList.add("status-masuk");
+    else if (ketSelect.value === "libur") ketSelect.classList.add("status-libur");
+    else if (ketSelect.value === "cuti")  ketSelect.classList.add("status-cuti");
+    else if (ketSelect.value === "sakit") ketSelect.classList.add("status-sakit");
+  }
+  ketSelect.addEventListener("change", updateKetClass);
+  updateKetClass();
+
+  // ===== REKAP: set tanggal default 30 hari terakhir =====
+  function setDefaultRekapDates() {
+    if (!rekapFrom || !rekapTo) return;
+    const today = new Date();
+    const toStr = today.toISOString().slice(0, 10);
+    const from = new Date();
+    from.setDate(today.getDate() - 29);
+    const fromStr = from.toISOString().slice(0, 10);
+    rekapFrom.value = fromStr;
+    rekapTo.value   = toStr;
+  }
 
   // ===== LOGIN / LOGOUT =====
   function handleLogin() {
@@ -494,6 +551,10 @@
     statusMsg.textContent = "";
     preview.style.display = "none";
     canvas.width = canvas.height = 0;
+
+    setDefaultRekapDates();
+    rekapInfo.textContent  = "";
+    rekapDetail.innerHTML  = "";
   }
 
   function handleLogout() {
@@ -511,22 +572,14 @@
     canvas.width = canvas.height = 0;
     statusMsg.textContent = "";
 
+    if (rekapInfo)   rekapInfo.textContent = "";
+    if (rekapDetail) rekapDetail.innerHTML = "";
+
     loginSection.style.display = "block";
     absenSection.style.display = "none";
     logoutBtn.style.display = "none";
     loginInfo.style.display = "none";
   }
-
-  // ===== Warna dropdown Keterangan =====
-  function updateKetClass() {
-    ketSelect.classList.remove("status-masuk","status-libur","status-cuti","status-sakit");
-    if (ketSelect.value === "masuk") ketSelect.classList.add("status-masuk");
-    else if (ketSelect.value === "libur") ketSelect.classList.add("status-libur");
-    else if (ketSelect.value === "cuti")  ketSelect.classList.add("status-cuti");
-    else if (ketSelect.value === "sakit") ketSelect.classList.add("status-sakit");
-  }
-  ketSelect.addEventListener("change", updateKetClass);
-  updateKetClass();
 
   // ===== Kamera =====
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -588,9 +641,10 @@
     statusMsg.textContent = "";
   }
 
-  // ===== Kirim Absensi =====
-  const FETCH_URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec"; // <<< GANTI dengan URL Web App Apps Script (akhiran /exec)
+  // ===== URL WEB APP (GANTI DENGAN punyamu) =====
+  const FETCH_URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec";
 
+  // ===== Kirim Absensi =====
   function kirimAbsensi(mode) {
     if (!currentUser) {
       alert("Silakan login terlebih dahulu.");
@@ -636,6 +690,12 @@
     })
     .then(res => res.text())
     .then(text => {
+      // untuk rekap, backend kirim JSON => kita deteksi
+      if (text.startsWith("{")) {
+        // panggilan rekap, abaikan di sini
+        statusMsg.textContent = "";
+        return;
+      }
       statusMsg.textContent = "Respon server: " + text;
       if (text.indexOf("ERROR") === 0) {
         alert(text);
@@ -650,13 +710,86 @@
     });
   }
 
-  // expose ke onclick HTML
+  // ===== LIHAT REKAP ABSENSI =====
+  function lihatRekap() {
+    if (!currentUser) {
+      alert("Silakan login terlebih dahulu.");
+      return;
+    }
+    const from = rekapFrom.value;
+    const to   = rekapTo.value;
+
+    if (!from || !to) {
+      alert("Silakan isi tanggal dari dan sampai.");
+      return;
+    }
+
+    const fromDate = new Date(from + "T00:00:00");
+    const toDate   = new Date(to   + "T23:59:59");
+    const diffMs   = toDate - fromDate;
+    const diffHari = diffMs / (1000 * 60 * 60 * 24) + 1;
+    if (diffHari <= 0) {
+      alert("Tanggal sampai harus >= tanggal dari.");
+      return;
+    }
+    if (diffHari > 30) {
+      alert("Rentang maksimal 30 hari.");
+      return;
+    }
+
+    rekapInfo.textContent  = "Mengambil data rekap...";
+    rekapDetail.innerHTML  = "";
+
+    fetch(FETCH_URL_WEB_APP, {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "rekap",
+        nama: currentUser.nama,
+        from: from,
+        to:   to
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.ok) {
+        rekapInfo.textContent = "Gagal ambil rekap: " + (data.error || "Unknown error");
+        return;
+      }
+      rekapInfo.textContent =
+        "Rekap " + currentUser.nama +
+        " (" + from + " s/d " + to + ") - Total hari: " + data.totalHari +
+        " | Masuk: " + data.totalMasuk +
+        ", Libur: " + data.totalLibur +
+        ", Cuti: " + data.totalCuti +
+        ", Sakit: " + data.totalSakit;
+
+      if (!data.rows || !data.rows.length) {
+        rekapDetail.innerHTML = "<em>Tidak ada data di rentang tanggal ini.</em>";
+        return;
+      }
+
+      let html = "<table style='width:100%; border-collapse:collapse; font-size:11px; margin-top:4px;'>";
+      html += "<tr style='background:#f3f4f6;'><th style='padding:4px; border-bottom:1px solid #e5e7eb;'>Tanggal</th><th style='padding:4px; border-bottom:1px solid #e5e7eb;'>Keterangan</th></tr>";
+      data.rows.forEach(r => {
+        html += "<tr>" +
+          "<td style='padding:3px 4px; border-bottom:1px solid #f1f5f9;'>" + r.date + "</td>" +
+          "<td style='padding:3px 4px; border-bottom:1px solid #f1f5f9; text-transform:capitalize;'>" + r.ket + "</td>" +
+        "</tr>";
+      });
+      html += "</table>";
+      rekapDetail.innerHTML = html;
+    })
+    .catch(err => {
+      rekapInfo.textContent = "Gagal ambil rekap: " + err.message;
+    });
+  }
+
+  // expose ke window
   window.handleLogin  = handleLogin;
   window.handleLogout = handleLogout;
   window.ambilFoto    = ambilFoto;
   window.kirimAbsensi = kirimAbsensi;
+  window.lihatRekap   = lihatRekap;
 </script>
 </body>
 </html>
-
-
