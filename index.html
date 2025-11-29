@@ -25,17 +25,13 @@
       min-height: 100vh;
       padding: 24px 12px;
     }
-
     @keyframes gradientMove {
-      0%   { background-position: 0% 0%; }
-      50%  { background-position: 100% 100%; }
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
       100% { background-position: 0% 0%; }
     }
 
-    .wrapper {
-      width: 100%;
-      max-width: 460px;
-    }
+    .wrapper { width: 100%; max-width: 460px; }
 
     .brand-bar {
       display: flex;
@@ -45,7 +41,6 @@
       color: #e0fdf2;
       text-shadow: 0 0 8px rgba(0,0,0,0.4);
     }
-
     .brand-logo {
       width: 46px;
       height: 46px;
@@ -54,7 +49,6 @@
       background: #e0fdf2;
       box-shadow: 0 0 16px rgba(0,255,200,0.65);
     }
-
     .brand-name {
       font-weight: 700;
       letter-spacing: 0.08em;
@@ -71,12 +65,6 @@
         0 25px 40px rgba(0, 0, 0, 0.35),
         0 0 20px rgba(0, 255, 200, 0.3);
       border: 1px solid rgba(255,255,255,0.55);
-      animation: fadeIn 0.4s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
     }
 
     h2 {
@@ -105,43 +93,19 @@
       background: #f9fafb;
       transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
-
-    input:focus,
-    select:focus {
+    input:focus, select:focus {
       border-color: #2563eb;
       box-shadow: 0 0 0 1px #2563eb33;
       background: #ffffff;
     }
-
-    input[readonly] {
-      background: #f3f4f6;
-    }
+    input[readonly] { background: #f3f4f6; }
 
     /* WARNA KETERANGAN */
-    #ket {
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-      color: #111827;
-    }
-    .status-masuk {
-      background: #dcfce7 !important;
-      border-color: #16a34a !important;
-      color: #14532d !important;
-    }
-    .status-libur {
-      background: #fee2e2 !important;
-      border-color: #dc2626 !important;
-      color: #7f1d1d !important;
-    }
-    .status-cuti {
-      background: #dbeafe !important;
-      border-color: #2563eb !important;
-      color: #1e3a8a !important;
-    }
-    .status-sakit {
-      background: #fef3c7 !important;
-      border-color: #f59e0b !important;
-      color: #92400e !important;
-    }
+    #ket { transition: background 0.2s, color 0.2s, border-color 0.2s; color:#111827; }
+    .status-masuk { background:#dcfce7!important; border-color:#16a34a!important; color:#14532d!important; }
+    .status-libur { background:#fee2e2!important; border-color:#dc2626!important; color:#7f1d1d!important; }
+    .status-cuti  { background:#dbeafe!important; border-color:#2563eb!important; color:#1e3a8a!important; }
+    .status-sakit { background:#fef3c7!important; border-color:#f59e0b!important; color:#92400e!important; }
 
     .legend {
       display: flex;
@@ -150,7 +114,6 @@
       margin-bottom: 10px;
       margin-top: -4px;
     }
-
     .badge {
       padding: 3px 8px;
       border-radius: 999px;
@@ -161,7 +124,6 @@
       align-items: center;
       gap: 4px;
     }
-
     .b-masuk { background:#dcfce7; border-color:#16a34a; color:#14532d; }
     .b-libur { background:#fee2e2; border-color:#dc2626; color:#7f1d1d; }
     .b-cuti  { background:#dbeafe; border-color:#2563eb; color:#1e3a8a; }
@@ -171,7 +133,6 @@
       width: 100%;
       border-radius: 12px;
     }
-
     video {
       background: #020617;
       max-height: 220px;
@@ -189,14 +150,12 @@
       margin-top: 8px;
       letter-spacing: 0.01em;
     }
-
     .btn-camera { background:#020617; color:white; }
     .btn-masuk  { background:#2563eb; color:white; }
     .btn-pulang { background:#10b981; color:white; }
     .btn-login  { background:#0ea5e9; color:white; }
     .btn-logout { background:#ef4444; color:white; }
-
-    .btn:hover { filter: brightness(1.05); }
+    .btn:hover  { filter: brightness(1.05); }
 
     .small { font-size: 12px; color: #6b7280; }
     #statusMsg { margin-top: 8px; min-height: 16px; }
@@ -206,20 +165,17 @@
       color: #065f46;
       font-weight: 600;
       margin-bottom: 6px;
+      display:none;
     }
+    #logoutBtn { display:none; }
 
-    hr {
-      border: none;
-      border-top: 1px dashed #e5e7eb;
-      margin: 10px 0 14px;
-    }
+    hr { border:none; border-top:1px dashed #e5e7eb; margin:10px 0 14px; }
   </style>
 </head>
 <body>
   <div class="wrapper">
     <!-- HEADER BRAND -->
     <div class="brand-bar">
-      <!-- file logo-pttj.png harus ada di folder yang sama -->
       <img src="logo-pttj.png" alt="Logo PT PUTRA TIMUR JAYA" class="brand-logo">
       <span class="brand-name">PT PUTRA TIMUR JAYA</span>
     </div>
@@ -227,7 +183,7 @@
     <div class="card">
       <h2>Absensi Pegawai</h2>
 
-      <!-- ========= LOGIN SECTION ========= -->
+      <!-- LOGIN -->
       <div id="loginSection">
         <label>Login Teknisi</label>
         <input id="loginUser" placeholder="User ID">
@@ -239,15 +195,12 @@
         <hr>
       </div>
 
-      <!-- Info user login + tombol logout -->
-      <div id="loginInfo" style="display:none;"></div>
-      <button id="logoutBtn" class="btn btn-logout" type="button"
-              style="display:none; margin-top:0;" onclick="handleLogout()">🚪 Logout</button>
+      <div id="loginInfo"></div>
+      <button id="logoutBtn" class="btn btn-logout" type="button" onclick="handleLogout()">🚪 Logout</button>
 
-      <!-- ========= ABSENSI SECTION (muncul setelah login) ========= -->
+      <!-- FORM ABSENSI -->
       <div id="absenSection" style="display:none; margin-top:10px;">
 
-        <!-- 1. DIVISI -->
         <label>Divisi</label>
         <select id="divisiSelect" disabled>
           <option value="">-- Pilih Divisi --</option>
@@ -257,17 +210,14 @@
           <option value="PIC">PIC</option>
         </select>
 
-        <!-- 2. NAMA (auto dari login) -->
         <label>Nama</label>
         <select id="namaSelect" disabled>
           <option value="">-- Pilih Pegawai --</option>
         </select>
 
-        <!-- 3. NIK otomatis -->
         <label>NIK</label>
         <input id="nik" placeholder="NIK otomatis" readonly>
 
-        <!-- 4. AREA KERJA -->
         <label>Area Kerja</label>
         <select id="area">
           <option value="">-- Pilih Area Kerja --</option>
@@ -279,7 +229,6 @@
           <option value="KNG">KNG</option>
         </select>
 
-        <!-- 5. KETERANGAN -->
         <label>Keterangan</label>
         <select id="ket">
           <option value="masuk">Masuk</option>
@@ -294,6 +243,18 @@
           <span class="badge b-cuti">Cuti = Biru</span>
           <span class="badge b-sakit">Sakit = Kuning</span>
         </div>
+
+        <!-- KETERANGAN TAMBAHAN -->
+        <label for="note">Keterangan tambahan</label>
+        <textarea id="note" rows="2" style="
+          width:100%;
+          padding:8px 10px;
+          border-radius:10px;
+          border:1px solid #d1d5db;
+          font-size:13px;
+          resize:vertical;
+          margin-bottom:10px;
+        " placeholder="Contoh: batuk ringan, kurang sehat, ada urusan keluarga, dll."></textarea>
 
         <label>Foto Absensi</label>
         <video id="video" autoplay playsinline></video>
@@ -416,25 +377,21 @@
 	"PTJ_Refli012|Putija@12|16023016|REFLI PITDATULLOH|PSB|CMI",
 	"PTJ_Puad98|Telkom123|16983641|PUAD TOHAWI|PSB|CLL",
 	"PTJ_Dendi@01|1052002|(Belum Ada)|DENDI MANDIRI|PSB|BTJ"
-	  
-    // contoh tambahan:
-    // "vikri|1234|15890001|VIKRI|IOAN|KNG",
-    // "wahendra|1234|15890002|WAHENDRA|PIC|CMI"
+    // tambahkan user lain di sini...
   ];
 
-  // Konversi ke objek USERS & PEGAWAI (supaya cuma isi di 1 tempat)
+  // mapping USER_LINES -> USERS & PEGAWAI
   const USERS = USER_LINES.map(line => {
     const [username, password, nik, nama, divisi, area] = line.split("|");
     return { username, password, nik, nama, divisi, defaultArea: area };
   });
-
   const PEGAWAI = USERS.map(u => ({
     nik: u.nik,
     nama: u.nama,
     divisi: u.divisi
   }));
-  /******************************************************/
 
+  // ==== VARIABEL DOM & STATE ====
   let lat = "";
   let lon = "";
   let cameraAvailable = false;
@@ -450,6 +407,7 @@
   const preview      = document.getElementById("preview");
   const lokasi       = document.getElementById("lokasi");
   const statusMsg    = document.getElementById("statusMsg");
+  const noteInput    = document.getElementById("note");
 
   const loginSection = document.getElementById("loginSection");
   const absenSection = document.getElementById("absenSection");
@@ -466,7 +424,7 @@
 
     if (!divisi) return;
 
-    PEGAWAI.forEach(function(p) {
+    PEGAWAI.forEach(p => {
       if (p.divisi === divisi) {
         const opt = document.createElement("option");
         opt.value = p.nama;
@@ -476,12 +434,10 @@
       }
     });
   }
-
   function onNamaChange() {
     const opt = namaSelect.options[namaSelect.selectedIndex];
     nikInput.value = opt && opt.dataset.nik ? opt.dataset.nik : "";
   }
-
   divisiSelect.addEventListener("change", refreshNamaOptions);
   namaSelect.addEventListener("change", onNamaChange);
 
@@ -489,19 +445,14 @@
   function handleLogin() {
     const u = loginUserInp.value.trim();
     const p = loginPassInp.value.trim();
-
     if (!u || !p) {
       alert("User ID dan Password wajib diisi.");
       return;
     }
 
     let found = null;
-
     USERS.forEach(acc => {
-      if (
-        acc.username.toLowerCase() === u.toLowerCase() &&
-        acc.password === p
-      ) {
+      if (acc.username.toLowerCase() === u.toLowerCase() && acc.password === p) {
         found = acc;
       }
     });
@@ -516,7 +467,6 @@
     // set divisi & nama sesuai user
     divisiSelect.value = currentUser.divisi;
     refreshNamaOptions();
-
     for (let i = 0; i < namaSelect.options.length; i++) {
       if (namaSelect.options[i].value === currentUser.nama) {
         namaSelect.selectedIndex = i;
@@ -525,15 +475,13 @@
     }
     onNamaChange();
 
-    // set area default (boleh diganti)
+    // set area default
     if (currentUser.defaultArea) {
       areaInput.value = currentUser.defaultArea;
     }
 
     loginInfo.style.display = "block";
-    loginInfo.textContent =
-      "Login sebagai: " + currentUser.nama + " (" + currentUser.divisi + ")";
-
+    loginInfo.textContent = "Login sebagai: " + currentUser.nama + " (" + currentUser.divisi + ")";
     loginSection.style.display = "none";
     absenSection.style.display = "block";
     logoutBtn.style.display = "block";
@@ -553,6 +501,7 @@
     areaInput.value = "";
     ketSelect.value = "masuk";
     updateKetClass();
+    noteInput.value = "";
     preview.style.display = "none";
     canvas.width = canvas.height = 0;
     statusMsg.textContent = "";
@@ -568,20 +517,20 @@
     ketSelect.classList.remove("status-masuk","status-libur","status-cuti","status-sakit");
     if (ketSelect.value === "masuk") ketSelect.classList.add("status-masuk");
     else if (ketSelect.value === "libur") ketSelect.classList.add("status-libur");
-    else if (ketSelect.value === "cuti") ketSelect.classList.add("status-cuti");
+    else if (ketSelect.value === "cuti")  ketSelect.classList.add("status-cuti");
     else if (ketSelect.value === "sakit") ketSelect.classList.add("status-sakit");
   }
   ketSelect.addEventListener("change", updateKetClass);
-  updateKetClass(); // awal
+  updateKetClass();
 
   // ===== Kamera =====
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video:true })
-      .then(function(stream) {
+      .then(stream => {
         cameraAvailable = true;
         video.srcObject = stream;
       })
-      .catch(function(err) {
+      .catch(err => {
         cameraAvailable = false;
         statusMsg.textContent = "Gagal akses kamera: " + err.message;
       });
@@ -610,12 +559,12 @@
   // ===== Lokasi =====
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
-      function(pos) {
+      pos => {
         lat = pos.coords.latitude;
         lon = pos.coords.longitude;
         lokasi.textContent = "Lat: " + lat.toFixed(6) + ", Lon: " + lon.toFixed(6);
       },
-      function(err) {
+      err => {
         lokasi.textContent = "Lokasi gagal: " + err.message;
       }
     );
@@ -627,6 +576,7 @@
     areaInput.value = currentUser && currentUser.defaultArea ? currentUser.defaultArea : "";
     ketSelect.value = "masuk";
     updateKetClass();
+    noteInput.value = "";
     preview.style.display = "none";
     canvas.width = 0;
     canvas.height = 0;
@@ -634,6 +584,8 @@
   }
 
   // ===== Kirim Absensi =====
+  const FETCH_URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec"; // <<< GANTI dengan URL Web App Apps Script (akhiran /exec)
+
   function kirimAbsensi(mode) {
     if (!currentUser) {
       alert("Silakan login terlebih dahulu.");
@@ -645,6 +597,7 @@
     const nik    = nikInput.value.trim();
     const area   = areaInput.value.trim();
     const ket    = ketSelect.value;
+    const note   = noteInput.value.trim();
 
     if (!divisi || !nama || !nik || !area) {
       alert("Divisi, Nama, NIK, dan Area Kerja wajib diisi.");
@@ -661,7 +614,7 @@
 
     statusMsg.textContent = "Mengirim absensi...";
 
-    fetch("https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec", {   // <<< GANTI DENGAN URL WEB APP (/exec)
+    fetch(FETCH_URL_WEB_APP, {
       method: "POST",
       body: JSON.stringify({
         mode : mode,
@@ -670,45 +623,33 @@
         area : area,
         divisi: divisi,
         ket  : ket,
+        note : note,
         photo: fotoBase64,
         lat  : lat,
         lon  : lon
       })
     })
-    .then(function(res) { return res.text(); })
-    .then(function(text) {
+    .then(res => res.text())
+    .then(text => {
       statusMsg.textContent = "Respon server: " + text;
       if (text.indexOf("ERROR") === 0) {
-        alert(text);  // pesan dari server (termasuk "Nama ini sudah absen hari ini")
+        alert(text);
       } else {
         alert("Absensi " + mode + " terkirim!");
         resetFormAfterSend();
       }
     })
-    .catch(function(err) {
+    .catch(err => {
       statusMsg.textContent = "Gagal kirim: " + err.message;
       alert("Terjadi error saat mengirim absensi.");
     });
   }
 
-  window.ambilFoto     = ambilFoto;
-  window.kirimAbsensi  = kirimAbsensi;
-  window.handleLogin   = handleLogin;
-  window.handleLogout  = handleLogout;
+  // expose ke onclick HTML
+  window.handleLogin  = handleLogin;
+  window.handleLogout = handleLogout;
+  window.ambilFoto    = ambilFoto;
+  window.kirimAbsensi = kirimAbsensi;
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
