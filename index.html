@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Absensi Pegawai - PT PUTRA TIMUR JAYA</title>
+  <title>Kehadiran Pegawai - PT PUTRA TIMUR JAYA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Font -->
@@ -182,7 +182,7 @@
     </div>
 
     <div class="card">
-      <h2>Absensi Pegawai</h2>
+      <h2>Kehadiran Pegawai</h2>
 
       <!-- LOGIN -->
       <div id="loginSection">
@@ -191,7 +191,7 @@
         <input id="loginPass" type="password" placeholder="Password">
         <button class="btn btn-login" type="button" onclick="handleLogin()">🔑 Login</button>
         <div class="small" style="margin-top:6px;">
-          Hanya teknisi terdaftar yang dapat mengakses absensi.
+          Hanya Teknisi Putija Yag Dapat Mengakses Kehadiran
         </div>
         <hr>
       </div>
@@ -259,7 +259,7 @@
           margin-bottom:10px;
         " placeholder="Contoh: Sehat,Masuk Siang,Ijin keluarga,Meriang dll."></textarea>
 
-        <label>Foto Absensi</label>
+        <label>Foto Kehadiran</label>
         <video id="video" autoplay playsinline></video>
         <canvas id="canvas" style="display:none;"></canvas>
         <img id="preview" style="display:none; margin-top:5px;">
@@ -274,7 +274,7 @@
 
         <!-- REKAP ABSEN -->
         <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #e5e7eb;">
-          <label>Rekap Absensi (maksimal 30 hari)</label>
+          <label>Rekap Kehadiran (maksimal 30 hari)</label>
           <div style="display:flex; gap:8px; margin-bottom:6px;">
             <input type="date" id="rekapFrom" style="flex:1; padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
             <input type="date" id="rekapTo"   style="flex:1; padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
@@ -708,7 +708,7 @@
       if (text.indexOf("ERROR") === 0) {
         alert(text);
       } else {
-        alert("Absensi " + mode + " terkirim!");
+        alert("Kehadiran " + mode + " terkirim!");
         resetFormAfterSend();
       }
     })
@@ -801,6 +801,7 @@
 </script>
 </body>
 </html>
+
 
 
 
