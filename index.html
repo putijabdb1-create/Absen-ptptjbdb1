@@ -767,48 +767,6 @@ function kirimFetch() {
     alert("Gagal kirim absensi.");
   });
 }
-	if (canvas.width && canvas.height) {
-	fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
-	}
-
-    statusMsg.textContent = "Mengirim absensi...";
-
-    fetch(FETCH_URL_WEB_APP, {
-      method: "POST",
-      body: JSON.stringify({
-        mode : mode,
-        nik  : nik,
-        nama : nama,
-        area : area,
-        divisi: divisi,
-        ket  : ket,
-        note : note,
-        photo: fotoBase64,
-        lat  : lat,
-        lon  : lon
-      })
-    })
-    .then(res => res.text())
-    .then(text => {
-      // untuk rekap, backend kirim JSON => kita deteksi
-      if (text.startsWith("{")) {
-        // panggilan rekap, abaikan di sini
-        statusMsg.textContent = "";
-        return;
-      }
-      statusMsg.textContent = "Respon server: " + text;
-      if (text.indexOf("ERROR") === 0) {
-        alert(text);
-      } else {
-        alert("Kehadiran " + mode + " terkirim!");
-        resetFormAfterSend();
-      }
-    })
-    .catch(err => {
-      statusMsg.textContent = "Gagal kirim: " + err.message;
-      alert("Terjadi error saat mengirim absensi.");
-    });
-  }
 
   // ===== LIHAT REKAP ABSENSI =====
   function lihatRekap() {
