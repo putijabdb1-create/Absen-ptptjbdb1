@@ -651,6 +651,8 @@
     canvas.height = 0;
     statusMsg.textContent = "";
   }
+  
+
 
   // ===== URL WEB APP (GANTI DENGAN punyamu) =====
   const FETCH_URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec";
@@ -675,12 +677,16 @@
     }
 
     let fotoBase64 = "";
-    if (canvas.width && canvas.height) {
-      fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
-    } else {
-      const lanjut = confirm("Belum ada foto. Lanjut absen tanpa foto?");
-      if (!lanjut) return;
-    }
+	if (canvas.width && canvas.height) {
+	fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
+	} else {
+	// 🔒 KHUSUS PULANG → WAJIB FOTO
+	if (mode === "pulang" && REQUIRE_PHOTO_PULANG) {
+		alert("❌ Absen pulang WAJIB foto.");
+		return;
+	}
+	
+	}
 
     statusMsg.textContent = "Mengirim absensi...";
 
@@ -750,7 +756,8 @@
 
     rekapInfo.textContent  = "Mengambil data rekap...";
     rekapDetail.innerHTML  = "";
-
+	const REQUIRE_PHOTO_PULANG = true;
+	
     fetch(FETCH_URL_WEB_APP, {
       method: "POST",
       body: JSON.stringify({
@@ -804,17 +811,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
