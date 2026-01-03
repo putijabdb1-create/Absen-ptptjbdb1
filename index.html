@@ -440,6 +440,8 @@
   // ==== VARIABEL DOM & STATE ====
   let lat = "";
   let lon = "";
+  let latPulang = "";
+  let lonPulang = "";
   let cameraAvailable = false;
   let currentUser = null;
 
@@ -622,24 +624,46 @@
     const dataUrl = canvas.toDataURL("image/jpeg");
     preview.src = dataUrl;
     preview.style.display = "block";
+	preview.dataset.ready = "1";
     alert("Foto berhasil diambil!");
   }
 
   // ===== Lokasi =====
   if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        lat = pos.coords.latitude;
-        lon = pos.coords.longitude;
-        lokasi.textContent = "Lat: " + lat.toFixed(6) + ", Lon: " + lon.toFixed(6);
-      },
-      err => {
-        lokasi.textContent = "Lokasi gagal: " + err.message;
-      }
-    );
-  } else {
-    lokasi.textContent = "Browser tidak mendukung lokasi.";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      lat = pos.coords.latitude;
+      lon = pos.coords.longitude;
+      lokasi.textContent =
+        "Lat: " + lat.toFixed(6) + ", Lon: " + lon.toFixed(6);
+    },
+    err => {
+      lokasi.textContent = "Lokasi gagal: " + err.message;
+    }
+  );
+} else {
+  lokasi.textContent = "Browser tidak mendukung lokasi.";
+}
+
+/* ===== GPS KHUSUS ABSEN PULANG ===== */
+function ambilLokasiPulang(callback) {
+  if (!("geolocation" in navigator)) {
+    alert("Browser tidak mendukung GPS.");
+    return;
   }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      latPulang = pos.coords.latitude;
+      lonPulang = pos.coords.longitude;
+      if (callback) callback();
+    },
+    err => {
+      alert("Gagal ambil lokasi pulang: " + err.message);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
 
   function resetFormAfterSend() {
     areaInput.value = currentUser && currentUser.defaultArea ? currentUser.defaultArea : "";
@@ -676,16 +700,75 @@
       return;
     }
 
-    let fotoBase64 = "";
+let fotoBase64 = "";
+
+// 🔒 KHUSUS PULANG: WAJIB FOTO BARU
+if (mode === "pulang") {
+  if (preview.dataset.ready !== "1") {
+    alert("❌ Absen pulang WAJIB ambil foto baru.");
+    return;
+  }
+} else {
+  // masuk: boleh tanpa foto
+  if (!canvas.width || !canvas.height) {
+    const lanjut = confirm("Belum ada foto. Lanjut absen tanpa foto?");
+    if (!lanjut) return;
+  }
+}
+
+if (canvas.width && canvas.height) {
+  fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
+}
+
+// ================= GPS & FETCH =================
+statusMsg.textContent =
+  mode === "pulang"
+    ? "Mengambil lokasi pulang..."
+    : "Mengirim absensi...";
+
+if (mode === "pulang") {
+  ambilLokasiPulang(kirimFetch);
+} else {
+  kirimFetch();
+}
+
+function kirimFetch() {
+  fetch(FETCH_URL_WEB_APP, {
+    method: "POST",
+    body: JSON.stringify({
+      mode  : mode,
+      nik   : nik,
+      nama  : nama,
+      area  : area,
+      divisi: divisi,
+      ket   : ket,
+      note  : note,
+      photo : fotoBase64,
+      lat   : mode === "pulang" ? latPulang : lat,
+      lon   : mode === "pulang" ? lonPulang : lon
+    })
+  })
+  .then(res => res.text())
+  .then(text => {
+    statusMsg.textContent = "Respon server: " + text;
+    if (text.startsWith("ERROR")) {
+      alert(text);
+    } else {
+      alert("Kehadiran " + mode + " terkirim!");
+      resetFormAfterSend();
+
+      // reset penanda
+      preview.dataset.ready = "";
+      latPulang = "";
+      lonPulang = "";
+    }
+  })
+  .catch(err => {
+    alert("Gagal kirim absensi.");
+  });
+}
 	if (canvas.width && canvas.height) {
 	fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
-	} else {
-	// 🔒 KHUSUS PULANG → WAJIB FOTO
-	if (mode === "pulang" && REQUIRE_PHOTO_PULANG) {
-		alert("❌ Absen pulang WAJIB foto.");
-		return;
-	}
-	
 	}
 
     statusMsg.textContent = "Mengirim absensi...";
