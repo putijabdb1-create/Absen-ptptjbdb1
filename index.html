@@ -681,79 +681,83 @@ function ambilLokasiPulang(callback) {
   // ===== URL WEB APP (GANTI DENGAN punyamu) =====
   const FETCH_URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec";
 
-  // ===== Kirim Absensi =====
-  function kirimAbsensi(mode) {
-    if (!currentUser) {
-      alert("Silakan login terlebih dahulu.");
-      return;
-    }
-
-    const divisi = divisiSelect.value.trim();
-    const nama   = namaSelect.value.trim();
-    const nik    = nikInput.value.trim();
-    const area   = areaInput.value.trim();
-    const ket    = ketSelect.value;
-    const note   = noteInput.value.trim();
-
-    if (!divisi || !nama || !nik || !area) {
-      alert("Divisi, Nama, NIK, dan Area Kerja wajib diisi.");
-      return;
-    }
-
-let fotoBase64 = "";
-
-// 🔒 KHUSUS PULANG: WAJIB FOTO BARU
-if (mode === "pulang") {
-  if (preview.dataset.ready !== "1") {
-    alert("❌ Absen pulang WAJIB ambil foto baru.");
+// ===== Kirim Absensi (FINAL & FIX) =====
+function kirimAbsensi(mode) {
+  if (!currentUser) {
+    alert("Silakan login terlebih dahulu.");
     return;
   }
-} else {
-  // masuk: boleh tanpa foto
-  if (!canvas.width || !canvas.height) {
-    const lanjut = confirm("Belum ada foto. Lanjut absen tanpa foto?");
-    if (!lanjut) return;
+
+  const divisi = divisiSelect.value.trim();
+  const nama   = namaSelect.value.trim();
+  const nik    = nikInput.value.trim();
+  const area   = areaInput.value.trim();
+  const ket    = ketSelect.value;
+  const note   = noteInput.value.trim();
+
+  if (!divisi || !nama || !nik || !area) {
+    alert("Divisi, Nama, NIK, dan Area Kerja wajib diisi.");
+    return;
   }
-}
 
-if (canvas.width && canvas.height) {
-  fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
-}
+  // ================= FOTO =================
+  let fotoBase64 = "";
 
-// ================= GPS & FETCH =================
-statusMsg.textContent =
-  mode === "pulang"
-    ? "Mengambil lokasi pulang..."
-    : "Mengirim absensi...";
+  // 🔒 KHUSUS PULANG: WAJIB FOTO BARU
+  if (mode === "pulang") {
+    if (preview.dataset.ready !== "1") {
+      alert("❌ Absen pulang WAJIB ambil foto baru.");
+      return;
+    }
+  } else {
+    // masuk: boleh tanpa foto
+    if (!canvas.width || !canvas.height) {
+      const lanjut = confirm("Belum ada foto. Lanjut absen tanpa foto?");
+      if (!lanjut) return;
+    }
+  }
 
-if (mode === "pulang") {
-  ambilLokasiPulang(kirimFetch);
-} else {
-  kirimFetch();
-}
+  if (canvas.width && canvas.height) {
+    fotoBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
+  }
 
-function kirimFetch() {
-  fetch(FETCH_URL_WEB_APP, {
-    method: "POST",
-    body: JSON.stringify({
-      mode  : mode,
-      nik   : nik,
-      nama  : nama,
-      area  : area,
-      divisi: divisi,
-      ket   : ket,
-      note  : note,
-      photo : fotoBase64,
-      lat   : mode === "pulang" ? latPulang : lat,
-      lon   : mode === "pulang" ? lonPulang : lon
+  // ================= GPS & FETCH =================
+  statusMsg.textContent =
+    mode === "pulang"
+      ? "Mengambil lokasi pulang..."
+      : "Mengirim absensi...";
+
+  if (mode === "pulang") {
+    ambilLokasiPulang(kirimFetch);
+  } else {
+    kirimFetch();
+  }
+
+  function kirimFetch() {
+    fetch(FETCH_URL_WEB_APP, {
+      method: "POST",
+      body: JSON.stringify({
+        mode  : mode,
+        nik   : nik,
+        nama  : nama,
+        area  : area,
+        divisi: divisi,
+        ket   : ket,
+        note  : note,
+        photo : fotoBase64,
+        lat   : mode === "pulang" ? latPulang : lat,
+        lon   : mode === "pulang" ? lonPulang : lon
+      })
     })
-  })
-  .then(res => res.text())
-  .then(text => {
-    statusMsg.textContent = "Respon server: " + text;
-    if (text.startsWith("ERROR")) {
-      alert(text);
-    } else {
+    .then(res => res.text())
+    .then(text => {
+      statusMsg.textContent = "Respon server: " + text;
+
+      if (text.startsWith("ERROR")) {
+        alert(text);
+        return;
+      }
+
       alert("Kehadiran " + mode + " terkirim!");
       resetFormAfterSend();
 
@@ -761,11 +765,11 @@ function kirimFetch() {
       preview.dataset.ready = "";
       latPulang = "";
       lonPulang = "";
-    }
-  })
-  .catch(err => {
-    alert("Gagal kirim absensi.");
-  });
+    })
+    .catch(err => {
+      alert("Gagal kirim absensi.");
+    });
+  }
 }
 
   // ===== LIHAT REKAP ABSENSI =====
