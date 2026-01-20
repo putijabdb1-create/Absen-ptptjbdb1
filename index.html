@@ -599,7 +599,7 @@
     preview.src = dataUrl;
     preview.style.display = "block";
 	preview.dataset.ready = "1";
-    alert("Foto berhasil diambil!");
+    alert("Kasep pisan tos masuk photona !");
   }
 
   // ===== Lokasi =====
@@ -680,13 +680,13 @@ function kirimAbsensi(mode) {
   // 🔒 KHUSUS PULANG: WAJIB FOTO BARU
   if (mode === "pulang") {
     if (preview.dataset.ready !== "1") {
-      alert("❌ Absen pulang WAJIB ambil foto baru.");
+      alert("❌ Absen pulang WAJIB Pake Photo Baru atuh.");
       return;
     }
   } else {
     // masuk: boleh tanpa foto
     if (!canvas.width || !canvas.height) {
-      const lanjut = confirm("Belum ada foto. Lanjut absen tanpa foto?");
+      const lanjut = confirm("Photo heula Kasep Wajib. Lanjut Absen teu ngangge Photo?");
       if (!lanjut) return;
     }
   }
@@ -830,6 +830,3 @@ function kirimAbsensi(mode) {
 </script>
 </body>
 </html>
-
-
-
