@@ -746,10 +746,15 @@ function ambilLokasiPulang(callback) {
 
 
   // ===== URL WEB APP (GANTI DENGAN punyamu) =====
+  let absensiSedangDikirim = false;
   const FETCH_URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxomZTLRZZ69y-2iKIieCqCf8jbTfGpu5BhSFOecq3pdkSRqgw8Aei6Ja9c0EPX_e9f/exec";
 
 // ===== Kirim Absensi (FINAL & FIX) =====
 function kirimAbsensi(mode) {
+  if (absensiSedangDikirim) {
+    alert("Absensi masih diproses. Jangan tekan ulang; periksa status di data absensi terlebih dahulu.");
+    return;
+  }
   if (!currentUser) {
     alert("Silakan login terlebih dahulu.");
     return;
@@ -789,6 +794,9 @@ function kirimAbsensi(mode) {
   }
 
   // ================= GPS & FETCH =================
+  absensiSedangDikirim = true;
+  const tombolAbsen = document.querySelectorAll(".btn-masuk, .btn-pulang");
+  tombolAbsen.forEach(btn => { btn.disabled = true; btn.dataset.labelAsli = btn.textContent; });
   statusMsg.textContent =
     mode === "pulang"
       ? "Mengambil lokasi pulang..."
@@ -801,8 +809,13 @@ function kirimAbsensi(mode) {
   }
 
   function kirimFetch() {
+    // Apps Script menyimpan data, tetapi browser GitHub Pages di HP dapat
+    // memblokir pembacaan respons lintas-domain (CORS). no-cors menghindari
+    // status "mengirim" selamanya; hasil tetap harus diverifikasi di Sheet.
     fetch(FETCH_URL_WEB_APP, {
       method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         mode  : mode,
         nik   : nik,
@@ -816,25 +829,19 @@ function kirimAbsensi(mode) {
         lon   : mode === "pulang" ? lonPulang : lon
       })
     })
-    .then(res => res.text())
-    .then(text => {
-      statusMsg.textContent = "Respon server: " + text;
-
-      if (text.startsWith("ERROR")) {
-        alert(text);
-        return;
-      }
-
-      alert("Kehadiran " + mode + " terkirim!");
-      resetFormAfterSend();
-
-      // reset penanda
+    .then(() => {
+      statusMsg.textContent = "Permintaan absensi sudah dikirim. Jangan kirim ulang; pastikan data tercatat sebelum mencoba lagi.";
+      alert("Permintaan absensi dikirim. Karena respons server dibatasi browser, jangan tekan ulang. Pastikan data masuk di rekap/Google Sheets.");
+      // Jangan reset foto/form otomatis: cegah pengiriman ulang tanpa sengaja.
       preview.dataset.ready = "";
       latPulang = "";
       lonPulang = "";
     })
     .catch(err => {
-      alert("Gagal kirim absensi.");
+      statusMsg.textContent = "Pengiriman belum dapat dipastikan. Periksa Google Sheets sebelum mencoba lagi.";
+      alert("Pengiriman belum dapat dipastikan. Periksa Google Sheets terlebih dahulu agar tidak terjadi data ganda.");
+      absensiSedangDikirim = false;
+      tombolAbsen.forEach(btn => { btn.disabled = false; });
     });
   }
 }
