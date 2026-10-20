@@ -235,13 +235,16 @@
           <div class="admin-kpi" style="grid-column:1/-1;"><div>Belum Ada Catatan Absensi</div><strong id="kpiTanpaCatatan">0</strong><small>Belum dianggap mangkir sampai jadwal kerja diterapkan.</small></div>
         </div>
         <div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;">
-          <label for="dashboardMonth">Bulan Rekap</label>
-          <input type="month" id="dashboardMonth">
+          <label for="dashboardFrom">Periode Mulai</label>
+          <input type="date" id="dashboardFrom">
+          <label for="dashboardTo">Periode Akhir</label>
+          <input type="date" id="dashboardTo">
           <label for="dashboardLoker">Loker / Divisi</label>
           <select id="dashboardLoker"><option value="">Semua loker</option></select>
           <label for="dashboardArea">Wilayah Kerja</label>
           <select id="dashboardArea"><option value="">Semua wilayah</option></select>
           <button class="btn btn-rekap" type="button" onclick="muatDashboard()">🔄 Tampilkan Rekap</button>
+          <button class="btn" type="button" onclick="downloadRekapDashboard()" style="margin-top:8px;background:#1d4ed8;color:#fff;">⬇️ Download Rekap CSV</button>
           <div id="dashboardMsg" class="small" style="margin-top:8px;"></div>
         </div>
         <div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;">
@@ -912,21 +915,27 @@ function kirimAbsensi(mode) {
     return USERS.filter(u => String(u.divisi || "").toUpperCase().startsWith("TEKNISI"));
   }
 
+  let dashboardStatsTerakhir = [];
+  let dashboardPeriodeTerakhir = {from:"", to:""};
+
   function siapkanFilterDashboard() {
-    const monthInput = document.getElementById("dashboardMonth");
-    if (!monthInput.value) {
-      const d = new Date();
-      monthInput.value = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
-    }
+    const fromInput = document.getElementById("dashboardFrom");
+    const toInput = document.getElementById("dashboardTo");
+    const today = new Date();
+    const pad = n => String(n).padStart(2,"0");
+    const todayStr = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate());
+    const firstStr = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-01";
+    if (!fromInput.value) fromInput.value = firstStr;
+    if (!toInput.value) toInput.value = todayStr;
     const loker = document.getElementById("dashboardLoker");
     const area = document.getElementById("dashboardArea");
     const oldLoker = loker.value;
     const oldArea = area.value;
     const roster = daftarTeknisiDashboard();
     const divisis = [...new Set(roster.map(u => u.divisi).filter(Boolean))].sort();
-    const areas = [...new Set(roster.flatMap(u => String(u.defaultArea || "").split(",").map(s => s.trim()).filter(Boolean)))].sort();
+    const fixedAreas = ["BTJ", "CLL", "GNH-CMI", "NJG-CMI", "NJG", "GNH"];
     loker.innerHTML = '<option value="">Semua loker</option>' + divisis.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
-    area.innerHTML = '<option value="">Semua wilayah</option>' + areas.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
+    area.innerHTML = '<option value="">Semua wilayah</option>' + fixedAreas.map(v => '<option value="' + v + '">' + v + '</option>').join("");
     loker.value = oldLoker;
     area.value = oldArea;
   }
@@ -939,23 +948,23 @@ function kirimAbsensi(mode) {
 
   function muatDashboard() {
     if (!currentAdmin) return;
-    const month = document.getElementById("dashboardMonth").value;
-    if (!month) {
-      document.getElementById("dashboardMsg").textContent = "Pilih bulan terlebih dahulu.";
+    const from = document.getElementById("dashboardFrom").value;
+    const to = document.getElementById("dashboardTo").value;
+    if (!from || !to) {
+      document.getElementById("dashboardMsg").textContent = "Pilih tanggal mulai dan tanggal akhir.";
       return;
     }
-    const parts = month.split("-");
-    const from = month + "-01";
-    const lastDay = new Date(Number(parts[0]), Number(parts[1]), 0).getDate();
-    const to = month + "-" + String(lastDay).padStart(2,"0");
+    if (from > to) {
+      document.getElementById("dashboardMsg").textContent = "Tanggal mulai tidak boleh melewati tanggal akhir.";
+      return;
+    }
     const lokerFilter = document.getElementById("dashboardLoker").value;
     const areaFilter = document.getElementById("dashboardArea").value;
-    const roster = daftarTeknisiDashboard().filter(u =>
-      (!lokerFilter || u.divisi === lokerFilter) &&
-      (!areaFilter || String(u.defaultArea || "").split(",").map(s => s.trim()).includes(areaFilter))
-    );
-
-    document.getElementById("dashboardMsg").textContent = "Mengambil data absensi bulan " + month + "...";
+    const roster = daftarTeknisiDashboard().filter(u => {
+      const userAreas = String(u.defaultArea || "").toUpperCase().split(/[,;/|]+/).map(v => v.trim());
+      return (!lokerFilter || u.divisi === lokerFilter) && (!areaFilter || userAreas.includes(areaFilter));
+    });
+    document.getElementById("dashboardMsg").textContent = "Mengambil data absensi " + from + " s.d. " + to + "...";
     document.getElementById("dashboardTableWrap").innerHTML = "";
 
     fetch(FETCH_URL_WEB_APP, {
@@ -978,36 +987,29 @@ function kirimAbsensi(mode) {
         if (!byIdentity[key]) byIdentity[key] = [];
         byIdentity[key].push(r);
       });
-
-      const nowDate = new Date();
-      const currentMonth = nowDate.getFullYear() + "-" + String(nowDate.getMonth()+1).padStart(2,"0");
-      const daysToEvaluate = month > currentMonth ? 0 : (month === currentMonth ? nowDate.getDate() : lastDay);
-
+      const today = new Date();
+      const todayStr = today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+      const effectiveTo = to > todayStr ? todayStr : to;
+      const daysToEvaluate = from > effectiveTo ? 0 : Math.floor((new Date(effectiveTo+"T00:00:00")-new Date(from+"T00:00:00"))/86400000)+1;
       const stats = roster.map(u => {
         const ownRows = byIdentity[keyForIdentity(u.nik, u.nama)] || [];
         const perDate = {};
         ownRows.forEach(r => {
           const date = String(r.date || "");
           const ket = String(r.ket || "").toLowerCase().trim();
-          if (!perDate[date]) perDate[date] = { ket: ket, masuk: false, pulang: false };
+          if (!date || date < from || date > to) return;
+          if (!perDate[date]) perDate[date] = { ket: ket, masuk: false };
           if (ket === "masuk" || r.jamMasuk) perDate[date].masuk = true;
-          if (r.jamPulang) perDate[date].pulang = true;
-          // Status keterangan non-masuk tetap tercatat walau jam masuk kosong.
           if (["libur","cuti","sakit","izin","ijin"].includes(ket)) perDate[date].ket = ket;
         });
         const values = Object.values(perDate);
         const count = k => values.filter(v => v.ket === k).length;
-        const masuk = values.filter(v => v.masuk && (!["libur","cuti","sakit","izin","ijin"].includes(v.ket))).length;
-        const libur = count("libur");
-        const cuti = count("cuti");
-        const sakit = count("sakit");
-        const izin = count("izin") + count("ijin");
-        return {
-          user:u, totalHari:values.length, masuk:masuk, libur:libur, izin:izin, sakit:sakit, cuti:cuti,
-          tanpaCatatan:Math.max(0, daysToEvaluate - values.length)
-        };
+        const masuk = values.filter(v => v.masuk && !["libur","cuti","sakit","izin","ijin"].includes(v.ket)).length;
+        const libur=count("libur"), cuti=count("cuti"), sakit=count("sakit"), izin=count("izin")+count("ijin");
+        return {user:u,totalHari:values.length,masuk,libur,izin,sakit,cuti,tanpaCatatan:Math.max(0,daysToEvaluate-values.length)};
       });
-
+      dashboardStatsTerakhir = stats.slice().sort((a,b)=>a.user.nama.localeCompare(b.user.nama));
+      dashboardPeriodeTerakhir = {from,to};
       const sum = key => stats.reduce((acc, s) => acc + s[key], 0);
       document.getElementById("kpiTotal").textContent = roster.length;
       document.getElementById("kpiMasuk").textContent = sum("masuk");
@@ -1016,23 +1018,28 @@ function kirimAbsensi(mode) {
       document.getElementById("kpiSakit").textContent = sum("sakit");
       document.getElementById("kpiCuti").textContent = sum("cuti");
       document.getElementById("kpiTanpaCatatan").textContent = sum("tanpaCatatan");
-
       let table = '<table class="admin-table"><thead><tr><th>Nama Teknisi</th><th>NIK</th><th>Loker</th><th>Wilayah</th><th>Masuk</th><th>Libur</th><th>Izin</th><th>Sakit</th><th>Cuti</th><th>Tgl Ada Catatan</th><th>Tgl Tanpa Catatan*</th></tr></thead><tbody>';
-      if (!stats.length) {
-        table += '<tr><td colspan="11">Tidak ada teknisi untuk filter ini.</td></tr>';
-      } else {
-        stats.sort((a,b) => a.user.nama.localeCompare(b.user.nama)).forEach(s => {
-          table += '<tr><td>' + escapeHtml(s.user.nama) + '</td><td>' + escapeHtml(s.user.nik) + '</td><td>' + escapeHtml(s.user.divisi) + '</td><td>' + escapeHtml(s.user.defaultArea) + '</td><td>' + s.masuk + '</td><td>' + s.libur + '</td><td>' + s.izin + '</td><td>' + s.sakit + '</td><td>' + s.cuti + '</td><td>' + s.totalHari + '</td><td>' + s.tanpaCatatan + '</td></tr>';
-        });
-      }
-      table += '</tbody></table><p class="small">*Tanggal tanpa catatan dihitung dari jumlah hari kalender pada bulan terpilih. Angka ini belum berarti mangkir; jadwal kerja perlu diterapkan terlebih dahulu.</p>';
+      if (!dashboardStatsTerakhir.length) table += '<tr><td colspan="11">Tidak ada teknisi untuk filter ini.</td></tr>';
+      dashboardStatsTerakhir.forEach(s => { table += '<tr><td>'+escapeHtml(s.user.nama)+'</td><td>'+escapeHtml(s.user.nik)+'</td><td>'+escapeHtml(s.user.divisi)+'</td><td>'+escapeHtml(s.user.defaultArea)+'</td><td>'+s.masuk+'</td><td>'+s.libur+'</td><td>'+s.izin+'</td><td>'+s.sakit+'</td><td>'+s.cuti+'</td><td>'+s.totalHari+'</td><td>'+s.tanpaCatatan+'</td></tr>'; });
+      table += '</tbody></table><p class="small">*Tanggal tanpa catatan dihitung dalam rentang periode sampai hari ini. Angka ini belum berarti mangkir; jadwal kerja perlu diterapkan terlebih dahulu.</p>';
       document.getElementById("dashboardTableWrap").innerHTML = table;
-      document.getElementById("dashboardMsg").textContent =
-        "Rekap selesai: " + month + " • " + roster.length + " teknisi • " + records.length + " baris absensi.";
+      document.getElementById("dashboardMsg").textContent = "Rekap selesai: "+from+" s.d. "+to+" • "+roster.length+" teknisi • "+records.length+" baris absensi.";
     })
-    .catch(err => {
-      document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message;
-    });
+    .catch(err => { document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message; });
+  }
+
+  function downloadRekapDashboard() {
+    if (!dashboardStatsTerakhir.length) {
+      document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download.";
+      return;
+    }
+    const rows = [["Periode Mulai",dashboardPeriodeTerakhir.from], ["Periode Akhir",dashboardPeriodeTerakhir.to], [], ["Nama Teknisi","NIK","Loker","Wilayah","Masuk","Libur","Izin","Sakit","Cuti","Tgl Ada Catatan","Tgl Tanpa Catatan"]];
+    dashboardStatsTerakhir.forEach(s => rows.push([s.user.nama,s.user.nik,s.user.divisi,s.user.defaultArea,s.masuk,s.libur,s.izin,s.sakit,s.cuti,s.totalHari,s.tanpaCatatan]));
+    const csv = "\uFEFF" + rows.map(row => row.map(v => '"'+String(v == null ? "" : v).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="Rekap_Absensi_"+dashboardPeriodeTerakhir.from+"_sd_"+dashboardPeriodeTerakhir.to+".csv";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
 
 
@@ -1047,6 +1054,7 @@ function kirimAbsensi(mode) {
   window.handleAdminLogin = handleAdminLogin;
   window.logoutAdmin = logoutAdmin;
   window.muatDashboard = muatDashboard;
+  window.downloadRekapDashboard = downloadRekapDashboard;
 </script>
 </body>
 </html>
