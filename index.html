@@ -713,22 +713,23 @@
 }
 
 /* ===== GPS KHUSUS ABSEN PULANG ===== */
-function ambilLokasiPulang(callback) {
+function ambilLokasiPulang(callback, onError) {
   if (!("geolocation" in navigator)) {
-    alert("Browser tidak mendukung GPS.");
-    return;
+    const msg = "Browser tidak mendukung GPS.";
+    alert(msg); if (onError) onError(msg); return;
   }
-
   navigator.geolocation.getCurrentPosition(
     pos => {
       latPulang = pos.coords.latitude;
       lonPulang = pos.coords.longitude;
+      lokasi.textContent = "GPS pulang: Lat: " + latPulang.toFixed(6) + ", Lon: " + lonPulang.toFixed(6);
       if (callback) callback();
     },
     err => {
-      alert("Gagal ambil lokasi pulang: " + err.message);
+      const msg = "Gagal ambil lokasi pulang: " + err.message;
+      alert(msg); if (onError) onError(msg);
     },
-    { enableHighAccuracy: true, timeout: 10000 }
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 
@@ -831,7 +832,7 @@ function kirimAbsensi(mode) {
     })
     .then(() => {
       statusMsg.textContent = "Permintaan absensi sudah dikirim. Jangan kirim ulang; pastikan data tercatat sebelum mencoba lagi.";
-      alert("Permintaan absensi dikirim. Karena respons server dibatasi browser, jangan tekan ulang. Pastikan data masuk di rekap/Google Sheets.");
+      alert("Permintaan absensi dikirim. Karena respons server dibatasi browser, jangan tekan ulang setelah ini muncul absen sudah masuk.");
       // Jangan reset foto/form otomatis: cegah pengiriman ulang tanpa sengaja.
       preview.dataset.ready = "";
       latPulang = "";
