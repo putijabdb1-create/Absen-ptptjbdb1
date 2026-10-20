@@ -715,21 +715,27 @@
 /* ===== GPS KHUSUS ABSEN PULANG ===== */
 function ambilLokasiPulang(callback, onError) {
   if (!("geolocation" in navigator)) {
-    const msg = "Browser tidak mendukung GPS.";
-    alert(msg); if (onError) onError(msg); return;
+    const pesan = "Browser tidak mendukung GPS.";
+    statusMsg.textContent = pesan;
+    alert(pesan);
+    if (onError) onError();
+    return;
   }
+
   navigator.geolocation.getCurrentPosition(
     pos => {
       latPulang = pos.coords.latitude;
       lonPulang = pos.coords.longitude;
-      lokasi.textContent = "GPS pulang: Lat: " + latPulang.toFixed(6) + ", Lon: " + lonPulang.toFixed(6);
+      lokasi.textContent = "Lat: " + latPulang.toFixed(6) + ", Lon: " + lonPulang.toFixed(6);
       if (callback) callback();
     },
     err => {
-      const msg = "Gagal ambil lokasi pulang: " + err.message;
-      alert(msg); if (onError) onError(msg);
+      const pesan = "Gagal ambil lokasi pulang: " + err.message + ". Pastikan izin Lokasi aktif, lalu coba lagi.";
+      statusMsg.textContent = pesan;
+      alert(pesan);
+      if (onError) onError();
     },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
   );
 }
 
@@ -803,8 +809,13 @@ function kirimAbsensi(mode) {
       ? "Mengambil lokasi pulang..."
       : "Mengirim absensi...";
 
+  function lepasKunciTombol() {
+    absensiSedangDikirim = false;
+    tombolAbsen.forEach(btn => { btn.disabled = false; });
+  }
+
   if (mode === "pulang") {
-    ambilLokasiPulang(kirimFetch);
+    ambilLokasiPulang(kirimFetch, lepasKunciTombol);
   } else {
     kirimFetch();
   }
@@ -832,11 +843,14 @@ function kirimAbsensi(mode) {
     })
     .then(() => {
       statusMsg.textContent = "Permintaan absensi sudah dikirim. Jangan kirim ulang; pastikan data tercatat sebelum mencoba lagi.";
-      alert("Permintaan absensi dikirim. Karena respons server dibatasi browser, jangan tekan ulang setelah ini muncul absen sudah masuk.");
-      // Jangan reset foto/form otomatis: cegah pengiriman ulang tanpa sengaja.
+      alert("Permintaan absensi dikirim. Karena respons server dibatasi browser, jangan tekan ulang. Pastikan data masuk di rekap/Google Sheets.");
+      // Lepaskan kunci setelah permintaan selesai agar tombol Absen Pulang
+      // tetap dapat digunakan setelah Absen Masuk. Server tetap memvalidasi
+      // duplikasi berdasarkan NIK dan tanggal.
       preview.dataset.ready = "";
       latPulang = "";
       lonPulang = "";
+      lepasKunciTombol();
     })
     .catch(err => {
       statusMsg.textContent = "Pengiriman belum dapat dipastikan. Periksa Google Sheets sebelum mencoba lagi.";
