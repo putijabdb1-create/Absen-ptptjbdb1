@@ -695,46 +695,42 @@
     alert("Kasep pisan tos masuk photona !");
   }
 
-  // ===== GPS: minta lokasi saat tombol Absen ditekan =====
-  function pesanErrorGPS(err) {
-    let pesan = "Tidak bisa mengambil lokasi GPS.";
-    if (err && err.code === 1) {
-      pesan = "Izin lokasi ditolak. Aktifkan izin Lokasi untuk situs ini di pengaturan browser HP, nyalakan Lokasi/GPS HP, lalu muat ulang halaman.";
-    } else if (err && err.code === 2) {
-      pesan = "Lokasi belum tersedia. Nyalakan GPS/Layanan Lokasi HP, aktifkan akurasi tinggi, lalu coba lagi di area terbuka.";
-    } else if (err && err.code === 3) {
-      pesan = "Pengambilan GPS terlalu lama. Pastikan GPS HP aktif dan coba lagi di area terbuka.";
+  // ===== Lokasi =====
+  if ("geolocation" in navigator) {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      lat = pos.coords.latitude;
+      lon = pos.coords.longitude;
+      lokasi.textContent =
+        "Lat: " + lat.toFixed(6) + ", Lon: " + lon.toFixed(6);
+    },
+    err => {
+      lokasi.textContent = "Lokasi gagal: " + err.message;
     }
-    lokasi.textContent = pesan;
-    alert(pesan);
+  );
+} else {
+  lokasi.textContent = "Browser tidak mendukung lokasi.";
+}
+
+/* ===== GPS KHUSUS ABSEN PULANG ===== */
+function ambilLokasiPulang(callback) {
+  if (!("geolocation" in navigator)) {
+    alert("Browser tidak mendukung GPS.");
+    return;
   }
 
-  function ambilLokasi(mode, callback) {
-    if (!("geolocation" in navigator)) {
-      const pesan = "Browser ini tidak mendukung GPS. Buka absensi melalui Chrome/Safari.";
-      lokasi.textContent = pesan;
-      alert(pesan);
-      return;
-    }
-    lokasi.textContent = "Meminta izin dan mengambil lokasi GPS...";
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const latitude = pos.coords.latitude;
-        const longitude = pos.coords.longitude;
-        if (mode === "pulang") {
-          latPulang = latitude;
-          lonPulang = longitude;
-        } else {
-          lat = latitude;
-          lon = longitude;
-        }
-        lokasi.textContent = "Lat: " + latitude.toFixed(6) + ", Lon: " + longitude.toFixed(6);
-        if (typeof callback === "function") callback();
-      },
-      err => pesanErrorGPS(err),
-      { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 }
-    );
-  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      latPulang = pos.coords.latitude;
+      lonPulang = pos.coords.longitude;
+      if (callback) callback();
+    },
+    err => {
+      alert("Gagal ambil lokasi pulang: " + err.message);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
 
   function resetFormAfterSend() {
     areaInput.value = currentUser && currentUser.defaultArea ? currentUser.defaultArea : "";
@@ -798,8 +794,11 @@ function kirimAbsensi(mode) {
       ? "Mengambil lokasi pulang..."
       : "Mengirim absensi...";
 
-  // GPS wajib untuk MASUK maupun PULANG; jangan kirim jika lokasi gagal.
-  ambilLokasi(mode, kirimFetch);
+  if (mode === "pulang") {
+    ambilLokasiPulang(kirimFetch);
+  } else {
+    kirimFetch();
+  }
 
   function kirimFetch() {
     fetch(FETCH_URL_WEB_APP, {
