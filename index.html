@@ -106,6 +106,7 @@
     .status-libur { background:#fee2e2!important; border-color:#dc2626!important; color:#7f1d1d!important; }
     .status-cuti  { background:#dbeafe!important; border-color:#2563eb!important; color:#1e3a8a!important; }
     .status-sakit { background:#fef3c7!important; border-color:#f59e0b!important; color:#92400e!important; }
+    .status-izin  { background:#f3e8ff!important; border-color:#9333ea!important; color:#6b21a8!important; }
 
     .legend {
       display: flex;
@@ -128,6 +129,7 @@
     .b-libur { background:#fee2e2; border-color:#dc2626; color:#7f1d1d; }
     .b-cuti  { background:#dbeafe; border-color:#2563eb; color:#1e3a8a; }
     .b-sakit { background:#fef3c7; border-color:#f59e0b; color:#92400e; }
+    .b-izin  { background:#f3e8ff; border-color:#9333ea; color:#6b21a8; }
 
     video, canvas, img {
       width: 100%;
@@ -171,6 +173,13 @@
     #logoutBtn { display:none; }
 
     hr { border:none; border-top:1px dashed #e5e7eb; margin:10px 0 14px; }
+    .admin-kpi { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; color:#475569; font-size:12px; }
+    .admin-kpi strong { display:block; color:#0f172a; font-size:25px; line-height:1.35; }
+    .admin-kpi small { display:block; color:#64748b; margin-top:4px; font-size:10px; }
+    .admin-table { width:100%; border-collapse:collapse; font-size:11px; min-width:620px; }
+    .admin-table th { position:sticky; top:0; background:#e0f2fe; color:#0f172a; text-align:left; }
+    .admin-table th,.admin-table td { padding:7px 6px; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+    .status-pill { display:inline-block; border-radius:999px; padding:2px 7px; background:#e2e8f0; color:#334155; }
   </style>
 </head>
 <body>
@@ -193,11 +202,53 @@
         <div class="small" style="margin-top:6px;">
           Hanya Teknisi Putija Yag Dapat Mengakses Kehadiran
         </div>
+        <button class="btn btn-rekap" type="button" onclick="tampilkanLoginAdmin()">📊 Login Admin / SPV</button>
+        <div id="adminLoginSection" style="display:none; margin-top:12px; padding:12px; border:1px solid #dbeafe; border-radius:14px; background:#eff6ff;">
+          <label>Login Admin / SPV</label>
+          <input id="adminUser" placeholder="User ID Admin">
+          <input id="adminPass" type="password" placeholder="Password Admin">
+          <button class="btn btn-login" type="button" onclick="handleAdminLogin()">🔐 Masuk Dashboard</button>
+          <button class="btn" style="background:#e5e7eb;color:#1f2937;" type="button" onclick="sembunyikanLoginAdmin()">Batal</button>
+          <div id="adminLoginMsg" class="small" style="margin-top:6px;"></div>
+        </div>
         <hr>
       </div>
 
       <div id="loginInfo"></div>
       <button id="logoutBtn" class="btn btn-logout" type="button" onclick="handleLogout()">🚪 Logout</button>
+
+
+      <!-- DASHBOARD ADMIN (TAMBAHAN; FORM ABSENSI ASLI TETAP DIPERTAHANKAN) -->
+      <section id="adminDashboard" style="display:none; margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <h2 style="margin:0;text-align:left;">Dashboard Kehadiran</h2>
+          <button type="button" onclick="logoutAdmin()" style="border:0;border-radius:999px;padding:8px 12px;background:#fee2e2;color:#991b1b;font-weight:600;">Keluar</button>
+        </div>
+        <div id="adminWelcome" class="small" style="margin:6px 0 12px;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="admin-kpi"><div>Total Teknisi</div><strong id="kpiTotal">0</strong></div>
+          <div class="admin-kpi"><div>Masuk</div><strong id="kpiMasuk">0</strong></div>
+          <div class="admin-kpi"><div>Libur</div><strong id="kpiLibur">0</strong></div>
+          <div class="admin-kpi"><div>Izin</div><strong id="kpiIzin">0</strong></div>
+          <div class="admin-kpi"><div>Sakit</div><strong id="kpiSakit">0</strong></div>
+          <div class="admin-kpi"><div>Cuti</div><strong id="kpiCuti">0</strong></div>
+          <div class="admin-kpi" style="grid-column:1/-1;"><div>Belum Ada Catatan Absensi</div><strong id="kpiTanpaCatatan">0</strong><small>Belum dianggap mangkir sampai jadwal kerja diterapkan.</small></div>
+        </div>
+        <div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;">
+          <label for="dashboardMonth">Bulan Rekap</label>
+          <input type="month" id="dashboardMonth">
+          <label for="dashboardLoker">Loker / Divisi</label>
+          <select id="dashboardLoker"><option value="">Semua loker</option></select>
+          <label for="dashboardArea">Wilayah Kerja</label>
+          <select id="dashboardArea"><option value="">Semua wilayah</option></select>
+          <button class="btn btn-rekap" type="button" onclick="muatDashboard()">🔄 Tampilkan Rekap</button>
+          <div id="dashboardMsg" class="small" style="margin-top:8px;"></div>
+        </div>
+        <div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;">
+          <label>Rekap Per Teknisi</label>
+          <div id="dashboardTableWrap" style="overflow:auto;max-height:480px;"></div>
+        </div>
+      </section>
 
       <!-- FORM ABSENSI -->
       <div id="absenSection" style="display:none; margin-top:10px;">
@@ -236,6 +287,7 @@
           <option value="libur">Libur</option>
           <option value="cuti">Cuti</option>
           <option value="sakit">Sakit</option>
+          <option value="izin">Izin</option>
         </select>
 
         <div class="legend">
@@ -243,6 +295,7 @@
           <span class="badge b-libur">Libur = Merah</span>
           <span class="badge b-cuti">Cuti = Biru</span>
           <span class="badge b-sakit">Sakit = Kuning</span>
+          <span class="badge b-izin">Izin = Ungu</span>
         </div>
 
         <!-- KETERANGAN TAMBAHAN -->
@@ -446,11 +499,12 @@
 
   // ===== Warna dropdown Keterangan =====
   function updateKetClass() {
-    ketSelect.classList.remove("status-masuk","status-libur","status-cuti","status-sakit");
+    ketSelect.classList.remove("status-masuk","status-libur","status-cuti","status-sakit","status-izin");
     if (ketSelect.value === "masuk")      ketSelect.classList.add("status-masuk");
     else if (ketSelect.value === "libur") ketSelect.classList.add("status-libur");
     else if (ketSelect.value === "cuti")  ketSelect.classList.add("status-cuti");
     else if (ketSelect.value === "sakit") ketSelect.classList.add("status-sakit");
+    else if (ketSelect.value === "izin")  ketSelect.classList.add("status-izin");
   }
   ketSelect.addEventListener("change", updateKetClass);
   updateKetClass();
@@ -775,7 +829,8 @@ function kirimAbsensi(mode) {
         " | Masuk: " + data.totalMasuk +
         ", Libur: " + data.totalLibur +
         ", Cuti: " + data.totalCuti +
-        ", Sakit: " + data.totalSakit;
+        ", Sakit: " + data.totalSakit +
+        ", Izin: " + (data.totalIzin || 0);
 
       if (!data.rows || !data.rows.length) {
         rekapDetail.innerHTML = "<em>Tidak ada data di rentang tanggal ini.</em>";
@@ -798,12 +853,200 @@ function kirimAbsensi(mode) {
     });
   }
 
+
+  // =============== DASHBOARD ADMIN (TAMBAHAN) ===============
+  let currentAdmin = null;
+
+  function tampilkanLoginAdmin() {
+    document.getElementById("adminLoginSection").style.display = "block";
+    document.getElementById("adminLoginMsg").textContent = "";
+  }
+  function sembunyikanLoginAdmin() {
+    document.getElementById("adminLoginSection").style.display = "none";
+  }
+  function isAdminRole(role) {
+    return ["ADMIN", "KACAB", "LEADER", "GUDANG", "SPV_GUDANG"].includes(String(role || "").toUpperCase());
+  }
+  function handleAdminLogin() {
+    const u = document.getElementById("adminUser").value.trim();
+    const p = document.getElementById("adminPass").value.trim();
+    const msg = document.getElementById("adminLoginMsg");
+    if (!u || !p) { msg.textContent = "User ID dan password wajib diisi."; return; }
+
+    const found = USERS.find(acc =>
+      acc.username.toLowerCase() === u.toLowerCase() &&
+      acc.password === p &&
+      isAdminRole(acc.divisi)
+    );
+    if (!found) {
+      msg.textContent = "Login gagal. Gunakan akun Admin, KACAB, Leader, atau Gudang yang terdaftar.";
+      return;
+    }
+
+    currentAdmin = found;
+    document.getElementById("adminWelcome").textContent =
+      "Login sebagai " + found.nama + " (" + found.divisi + "). Data teknisi mengikuti daftar user yang ada.";
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("adminLoginSection").style.display = "none";
+    document.getElementById("adminDashboard").style.display = "block";
+    document.getElementById("absenSection").style.display = "none";
+    document.getElementById("loginInfo").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "none";
+    siapkanFilterDashboard();
+    muatDashboard();
+  }
+
+  function logoutAdmin() {
+    currentAdmin = null;
+    document.getElementById("adminUser").value = "";
+    document.getElementById("adminPass").value = "";
+    document.getElementById("adminDashboard").style.display = "none";
+    document.getElementById("loginSection").style.display = "block";
+    document.getElementById("adminLoginSection").style.display = "none";
+    document.getElementById("dashboardMsg").textContent = "";
+    document.getElementById("dashboardTableWrap").innerHTML = "";
+  }
+
+  function daftarTeknisiDashboard() {
+    // Roster diambil dari daftar USER_LINES yang sama dengan login saat ini.
+    return USERS.filter(u => String(u.divisi || "").toUpperCase().startsWith("TEKNISI"));
+  }
+
+  function siapkanFilterDashboard() {
+    const monthInput = document.getElementById("dashboardMonth");
+    if (!monthInput.value) {
+      const d = new Date();
+      monthInput.value = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    }
+    const loker = document.getElementById("dashboardLoker");
+    const area = document.getElementById("dashboardArea");
+    const oldLoker = loker.value;
+    const oldArea = area.value;
+    const roster = daftarTeknisiDashboard();
+    const divisis = [...new Set(roster.map(u => u.divisi).filter(Boolean))].sort();
+    const areas = [...new Set(roster.flatMap(u => String(u.defaultArea || "").split(",").map(s => s.trim()).filter(Boolean)))].sort();
+    loker.innerHTML = '<option value="">Semua loker</option>' + divisis.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
+    area.innerHTML = '<option value="">Semua wilayah</option>' + areas.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
+    loker.value = oldLoker;
+    area.value = oldArea;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    }[ch]));
+  }
+
+  function muatDashboard() {
+    if (!currentAdmin) return;
+    const month = document.getElementById("dashboardMonth").value;
+    if (!month) {
+      document.getElementById("dashboardMsg").textContent = "Pilih bulan terlebih dahulu.";
+      return;
+    }
+    const parts = month.split("-");
+    const from = month + "-01";
+    const lastDay = new Date(Number(parts[0]), Number(parts[1]), 0).getDate();
+    const to = month + "-" + String(lastDay).padStart(2,"0");
+    const lokerFilter = document.getElementById("dashboardLoker").value;
+    const areaFilter = document.getElementById("dashboardArea").value;
+    const roster = daftarTeknisiDashboard().filter(u =>
+      (!lokerFilter || u.divisi === lokerFilter) &&
+      (!areaFilter || String(u.defaultArea || "").split(",").map(s => s.trim()).includes(areaFilter))
+    );
+
+    document.getElementById("dashboardMsg").textContent = "Mengambil data absensi bulan " + month + "...";
+    document.getElementById("dashboardTableWrap").innerHTML = "";
+
+    fetch(FETCH_URL_WEB_APP, {
+      method: "POST",
+      body: JSON.stringify({ mode: "dashboard", from: from, to: to })
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (!result || !result.ok) throw new Error((result && result.error) || "Gagal mengambil data.");
+      const records = result.rows || [];
+      const keyForIdentity = (nik, nama) => {
+        const n = String(nik || "").trim().toUpperCase();
+        if (n && n !== "BLM ADA" && n !== "BELUM ADA") return "NIK:" + n;
+        return "NAMA:" + String(nama || "").trim().toUpperCase();
+      };
+      const byIdentity = {};
+      records.forEach(r => {
+        const key = keyForIdentity(r.nik, r.nama);
+        if (!key || key === "NAMA:") return;
+        if (!byIdentity[key]) byIdentity[key] = [];
+        byIdentity[key].push(r);
+      });
+
+      const nowDate = new Date();
+      const currentMonth = nowDate.getFullYear() + "-" + String(nowDate.getMonth()+1).padStart(2,"0");
+      const daysToEvaluate = month > currentMonth ? 0 : (month === currentMonth ? nowDate.getDate() : lastDay);
+
+      const stats = roster.map(u => {
+        const ownRows = byIdentity[keyForIdentity(u.nik, u.nama)] || [];
+        const perDate = {};
+        ownRows.forEach(r => {
+          const date = String(r.date || "");
+          const ket = String(r.ket || "").toLowerCase().trim();
+          if (!perDate[date]) perDate[date] = { ket: ket, masuk: false, pulang: false };
+          if (ket === "masuk" || r.jamMasuk) perDate[date].masuk = true;
+          if (r.jamPulang) perDate[date].pulang = true;
+          // Status keterangan non-masuk tetap tercatat walau jam masuk kosong.
+          if (["libur","cuti","sakit","izin","ijin"].includes(ket)) perDate[date].ket = ket;
+        });
+        const values = Object.values(perDate);
+        const count = k => values.filter(v => v.ket === k).length;
+        const masuk = values.filter(v => v.masuk && (!["libur","cuti","sakit","izin","ijin"].includes(v.ket))).length;
+        const libur = count("libur");
+        const cuti = count("cuti");
+        const sakit = count("sakit");
+        const izin = count("izin") + count("ijin");
+        return {
+          user:u, totalHari:values.length, masuk:masuk, libur:libur, izin:izin, sakit:sakit, cuti:cuti,
+          tanpaCatatan:Math.max(0, daysToEvaluate - values.length)
+        };
+      });
+
+      const sum = key => stats.reduce((acc, s) => acc + s[key], 0);
+      document.getElementById("kpiTotal").textContent = roster.length;
+      document.getElementById("kpiMasuk").textContent = sum("masuk");
+      document.getElementById("kpiLibur").textContent = sum("libur");
+      document.getElementById("kpiIzin").textContent = sum("izin");
+      document.getElementById("kpiSakit").textContent = sum("sakit");
+      document.getElementById("kpiCuti").textContent = sum("cuti");
+      document.getElementById("kpiTanpaCatatan").textContent = sum("tanpaCatatan");
+
+      let table = '<table class="admin-table"><thead><tr><th>Nama Teknisi</th><th>NIK</th><th>Loker</th><th>Wilayah</th><th>Masuk</th><th>Libur</th><th>Izin</th><th>Sakit</th><th>Cuti</th><th>Tgl Ada Catatan</th><th>Tgl Tanpa Catatan*</th></tr></thead><tbody>';
+      if (!stats.length) {
+        table += '<tr><td colspan="11">Tidak ada teknisi untuk filter ini.</td></tr>';
+      } else {
+        stats.sort((a,b) => a.user.nama.localeCompare(b.user.nama)).forEach(s => {
+          table += '<tr><td>' + escapeHtml(s.user.nama) + '</td><td>' + escapeHtml(s.user.nik) + '</td><td>' + escapeHtml(s.user.divisi) + '</td><td>' + escapeHtml(s.user.defaultArea) + '</td><td>' + s.masuk + '</td><td>' + s.libur + '</td><td>' + s.izin + '</td><td>' + s.sakit + '</td><td>' + s.cuti + '</td><td>' + s.totalHari + '</td><td>' + s.tanpaCatatan + '</td></tr>';
+        });
+      }
+      table += '</tbody></table><p class="small">*Tanggal tanpa catatan dihitung dari jumlah hari kalender pada bulan terpilih. Angka ini belum berarti mangkir; jadwal kerja perlu diterapkan terlebih dahulu.</p>';
+      document.getElementById("dashboardTableWrap").innerHTML = table;
+      document.getElementById("dashboardMsg").textContent =
+        "Rekap selesai: " + month + " • " + roster.length + " teknisi • " + records.length + " baris absensi.";
+    })
+    .catch(err => {
+      document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message;
+    });
+  }
+
+
   // expose ke window
   window.handleLogin  = handleLogin;
   window.handleLogout = handleLogout;
   window.ambilFoto    = ambilFoto;
   window.kirimAbsensi = kirimAbsensi;
   window.lihatRekap   = lihatRekap;
+  window.tampilkanLoginAdmin = tampilkanLoginAdmin;
+  window.sembunyikanLoginAdmin = sembunyikanLoginAdmin;
+  window.handleAdminLogin = handleAdminLogin;
+  window.logoutAdmin = logoutAdmin;
+  window.muatDashboard = muatDashboard;
 </script>
 </body>
 </html>
