@@ -180,6 +180,58 @@
     .admin-table th { position:sticky; top:0; background:#e0f2fe; color:#0f172a; text-align:left; }
     .admin-table th,.admin-table td { padding:7px 6px; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
     .status-pill { display:inline-block; border-radius:999px; padding:2px 7px; background:#e2e8f0; color:#334155; }
+    /* Dashboard Admin modern responsive */
+    #adminDashboard { color:#172033; }
+    #adminDashboard .dash-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:5px; }
+    #adminDashboard .dash-eyebrow { color:#0f766e; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:4px; }
+    #adminDashboard .dash-title { font-size:22px; line-height:1.25; letter-spacing:-.04em; margin:0; color:#0f172a; }
+    #adminDashboard .dash-subtitle { color:#64748b; font-size:11px; line-height:1.6; margin:0 0 14px; }
+    #adminDashboard .dash-logout { flex:0 0 auto; border:1px solid #fecaca; border-radius:999px; padding:8px 13px; background:#fff1f2; color:#be123c; font-weight:700; cursor:pointer; }
+    #adminDashboard .kpi-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    #adminDashboard .admin-kpi { position:relative; overflow:hidden; min-width:0; background:linear-gradient(145deg,#fff,#f8fafc); border:1px solid #e2e8f0; border-radius:16px; padding:13px; box-shadow:0 4px 12px rgba(15,23,42,.035); }
+    #adminDashboard .admin-kpi:before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:#0f766e; border-radius:16px 0 0 16px; }
+    #adminDashboard .admin-kpi strong { font-size:25px; letter-spacing:-.04em; margin-top:2px; }
+    #adminDashboard .admin-kpi small { font-size:10px; line-height:1.5; }
+    #adminDashboard .kpi-masuk:before { background:#16a34a; }
+    #adminDashboard .kpi-libur:before { background:#ef4444; }
+    #adminDashboard .kpi-izin:before { background:#9333ea; }
+    #adminDashboard .kpi-sakit:before { background:#d97706; }
+    #adminDashboard .kpi-cuti:before { background:#2563eb; }
+    #adminDashboard .kpi-empty:before { background:#64748b; }
+    #adminDashboard .dash-panel { margin-top:13px; padding:14px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.045); }
+    #adminDashboard .panel-title { font-size:13px; font-weight:700; color:#0f172a; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+    #adminDashboard .panel-title .panel-icon { width:28px; height:28px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; background:#ccfbf1; }
+    #adminDashboard .filter-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+    #adminDashboard .filter-grid label { font-size:11px; font-weight:600; color:#475569; margin-bottom:5px; }
+    #adminDashboard input, #adminDashboard select { min-height:42px; border-radius:11px; border-color:#cbd5e1; background:#f8fafc; font-size:12px; margin-bottom:11px; }
+    #adminDashboard .filter-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    #adminDashboard .filter-actions .btn { margin:0; font-size:12px; padding:12px 8px; }
+    #adminDashboard .btn-rekap { background:linear-gradient(135deg,#0f766e,#0d9488); box-shadow:0 5px 12px rgba(13,148,136,.18); }
+    #adminDashboard .btn-download { background:linear-gradient(135deg,#1d4ed8,#2563eb); box-shadow:0 5px 12px rgba(37,99,235,.16); }
+    #adminDashboard .table-toolbar { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    #adminDashboard .table-toolbar .small { font-size:10px; }
+    #adminDashboard .table-scroll { overflow:auto; max-height:460px; border:1px solid #e2e8f0; border-radius:12px; -webkit-overflow-scrolling:touch; }
+    #adminDashboard .admin-table { min-width:760px; font-size:10px; }
+    #adminDashboard .admin-table th { background:#e0f2fe; color:#0c4a6e; font-size:10px; text-transform:uppercase; letter-spacing:.025em; }
+    #adminDashboard .admin-table th, #adminDashboard .admin-table td { padding:9px 8px; }
+    #adminDashboard .admin-table tbody tr:nth-child(even) { background:#f8fafc; }
+    #adminDashboard .admin-table tbody tr:hover { background:#ecfeff; }
+    #adminDashboard .small { line-height:1.55; }
+    #dashboardMsg { padding:8px 10px; border-radius:10px; background:#f1f5f9; }
+    @media (min-width:700px) {
+      .wrapper { max-width:1000px; }
+      .card { padding:26px; }
+      #adminDashboard .kpi-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+      #adminDashboard .admin-kpi.kpi-empty { grid-column:span 2; }
+    }
+    @media (max-width:420px) {
+      #adminDashboard .dash-title { font-size:19px; }
+      #adminDashboard .dash-panel { padding:11px; }
+      #adminDashboard .filter-grid { grid-template-columns:1fr; }
+      #adminDashboard .filter-actions { grid-template-columns:1fr; }
+      #adminDashboard .admin-kpi { padding:11px; }
+      #adminDashboard .admin-kpi strong { font-size:23px; }
+    }
   </style>
 </head>
 <body>
@@ -220,36 +272,43 @@
 
       <!-- DASHBOARD ADMIN (TAMBAHAN; FORM ABSENSI ASLI TETAP DIPERTAHANKAN) -->
       <section id="adminDashboard" style="display:none; margin-top:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <h2 style="margin:0;text-align:left;">Dashboard Kehadiran</h2>
-          <button type="button" onclick="logoutAdmin()" style="border:0;border-radius:999px;padding:8px 12px;background:#fee2e2;color:#991b1b;font-weight:600;">Keluar</button>
+        <div class="dash-heading">
+          <div><div class="dash-eyebrow">PT PUTRA TIMUR JAYA · BDB1</div><h2 class="dash-title">Dashboard Kehadiran</h2></div>
+          <button type="button" class="dash-logout" onclick="logoutAdmin()">Keluar ↗</button>
         </div>
-        <div id="adminWelcome" class="small" style="margin:6px 0 12px;"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div class="admin-kpi"><div>Total Teknisi</div><strong id="kpiTotal">0</strong></div>
-          <div class="admin-kpi"><div>Masuk</div><strong id="kpiMasuk">0</strong></div>
-          <div class="admin-kpi"><div>Libur</div><strong id="kpiLibur">0</strong></div>
-          <div class="admin-kpi"><div>Izin</div><strong id="kpiIzin">0</strong></div>
-          <div class="admin-kpi"><div>Sakit</div><strong id="kpiSakit">0</strong></div>
-          <div class="admin-kpi"><div>Cuti</div><strong id="kpiCuti">0</strong></div>
-          <div class="admin-kpi" style="grid-column:1/-1;"><div>Belum Ada Catatan Absensi</div><strong id="kpiTanpaCatatan">0</strong><small>Belum dianggap mangkir sampai jadwal kerja diterapkan.</small></div>
+        <div id="adminWelcome" class="dash-subtitle"></div>
+        <div class="kpi-grid">
+          <div class="admin-kpi"><div>👷 Total Teknisi</div><strong id="kpiTotal">0</strong><small>Teknisi terdaftar</small></div>
+          <div class="admin-kpi kpi-masuk"><div>✅ Masuk</div><strong id="kpiMasuk">0</strong><small>Total catatan masuk</small></div>
+          <div class="admin-kpi kpi-libur"><div>🌙 Libur</div><strong id="kpiLibur">0</strong><small>Catatan libur</small></div>
+          <div class="admin-kpi kpi-izin"><div>📝 Izin</div><strong id="kpiIzin">0</strong><small>Catatan izin</small></div>
+          <div class="admin-kpi kpi-sakit"><div>🩺 Sakit</div><strong id="kpiSakit">0</strong><small>Catatan sakit</small></div>
+          <div class="admin-kpi kpi-cuti"><div>📅 Cuti</div><strong id="kpiCuti">0</strong><small>Catatan cuti</small></div>
+          <div class="admin-kpi kpi-empty" style="grid-column:1/-1;"><div>📌 Belum Ada Catatan Absensi</div><strong id="kpiTanpaCatatan">0</strong><small>Belum dianggap mangkir sampai jadwal kerja diterapkan.</small></div>
         </div>
-        <div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;">
-          <label for="dashboardFrom">Periode Mulai</label>
-          <input type="date" id="dashboardFrom">
-          <label for="dashboardTo">Periode Akhir</label>
-          <input type="date" id="dashboardTo">
-          <label for="dashboardLoker">Loker / Divisi</label>
-          <select id="dashboardLoker"><option value="">Semua loker</option></select>
-          <label for="dashboardArea">Wilayah Kerja</label>
-          <select id="dashboardArea"><option value="">Semua wilayah</option></select>
-          <button class="btn btn-rekap" type="button" onclick="muatDashboard()">🔄 Tampilkan Rekap</button>
-          <button class="btn" type="button" onclick="downloadRekapDashboard()" style="margin-top:8px;background:#1d4ed8;color:#fff;">⬇️ Download Rekap CSV</button>
-          <div id="dashboardMsg" class="small" style="margin-top:8px;"></div>
+        <div class="dash-panel">
+          <div class="panel-title"><span class="panel-icon">⚙️</span> Filter Rekap Absensi</div>
+          <div class="filter-grid">
+            <div><label for="dashboardFrom">Tanggal Mulai</label><input type="date" id="dashboardFrom"></div>
+            <div><label for="dashboardTo">Tanggal Akhir</label><input type="date" id="dashboardTo"></div>
+            <div><label for="dashboardLoker">Loker / Divisi</label><select id="dashboardLoker"><option value="">Semua loker</option></select></div>
+            <div><label for="dashboardArea">Area</label><select id="dashboardArea">
+              <option value="">PILIH SEMUA AREA</option>
+              <option value="CMI-NJG">CMI-NJG</option>
+              <option value="GNH-CLL-BTJ">GNH-CLL-BTJ</option>
+              <option value="CMI-NJG-BTJ-CLL-GNH">CMI-NJG-BTJ-CLL-GNH</option>
+            </select></div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-rekap" type="button" onclick="muatDashboard()">↻ Tampilkan Rekap</button>
+            <button class="btn btn-download" type="button" onclick="downloadRekapDashboard()">↓ Download Rekap CSV</button>
+          </div>
+          <div id="dashboardMsg" class="small" style="margin-top:10px;"></div>
         </div>
-        <div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;">
-          <label>Rekap Per Teknisi</label>
-          <div id="dashboardTableWrap" style="overflow:auto;max-height:480px;"></div>
+        <div class="dash-panel">
+          <div class="panel-title"><span class="panel-icon">📊</span> Rekap Per Teknisi</div>
+          <div class="table-toolbar"><span class="small">Geser tabel ke samping untuk melihat semua kolom.</span></div>
+          <div id="dashboardTableWrap" class="table-scroll"></div>
         </div>
       </section>
 
@@ -933,9 +992,7 @@ function kirimAbsensi(mode) {
     const oldArea = area.value;
     const roster = daftarTeknisiDashboard();
     const divisis = [...new Set(roster.map(u => u.divisi).filter(Boolean))].sort();
-    const fixedAreas = ["BTJ", "CLL", "GNH-CMI", "NJG-CMI", "NJG", "GNH"];
     loker.innerHTML = '<option value="">Semua loker</option>' + divisis.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
-    area.innerHTML = '<option value="">Semua wilayah</option>' + fixedAreas.map(v => '<option value="' + v + '">' + v + '</option>').join("");
     loker.value = oldLoker;
     area.value = oldArea;
   }
@@ -961,8 +1018,16 @@ function kirimAbsensi(mode) {
     const lokerFilter = document.getElementById("dashboardLoker").value;
     const areaFilter = document.getElementById("dashboardArea").value;
     const roster = daftarTeknisiDashboard().filter(u => {
-      const userAreas = String(u.defaultArea || "").toUpperCase().split(/[,;/|]+/).map(v => v.trim());
-      return (!lokerFilter || u.divisi === lokerFilter) && (!areaFilter || userAreas.includes(areaFilter));
+      const userAreas = String(u.defaultArea || "").toUpperCase().split(/[,;/|]+/).map(v => v.trim()).filter(Boolean)
+        .map(v => v === "BT" ? "BTJ" : v);
+      const areaGroups = {
+        "CMI-NJG": ["CMI","NJG"],
+        "GNH-CLL-BTJ": ["GNH","CLL","BTJ"],
+        "CMI-NJG-BTJ-CLL-GNH": ["CMI","NJG","BTJ","CLL","GNH"]
+      };
+      const requiredAreas = areaGroups[areaFilter] || [];
+      const matchesArea = !areaFilter || requiredAreas.every(code => userAreas.includes(code));
+      return (!lokerFilter || u.divisi === lokerFilter) && matchesArea;
     });
     document.getElementById("dashboardMsg").textContent = "Mengambil data absensi " + from + " s.d. " + to + "...";
     document.getElementById("dashboardTableWrap").innerHTML = "";
@@ -1033,7 +1098,7 @@ function kirimAbsensi(mode) {
       document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download.";
       return;
     }
-    const rows = [["Periode Mulai",dashboardPeriodeTerakhir.from], ["Periode Akhir",dashboardPeriodeTerakhir.to], [], ["Nama Teknisi","NIK","Loker","Wilayah","Masuk","Libur","Izin","Sakit","Cuti","Tgl Ada Catatan","Tgl Tanpa Catatan"]];
+    const rows = [["Periode Mulai",dashboardPeriodeTerakhir.from], ["Periode Akhir",dashboardPeriodeTerakhir.to], ["Area",document.getElementById("dashboardArea").value || "PILIH SEMUA AREA"], [], ["Nama Teknisi","NIK","Loker","Wilayah","Masuk","Libur","Izin","Sakit","Cuti","Tgl Ada Catatan","Tgl Tanpa Catatan"]];
     dashboardStatsTerakhir.forEach(s => rows.push([s.user.nama,s.user.nik,s.user.divisi,s.user.defaultArea,s.masuk,s.libur,s.izin,s.sakit,s.cuti,s.totalHari,s.tanpaCatatan]));
     const csv = "\uFEFF" + rows.map(row => row.map(v => '"'+String(v == null ? "" : v).replace(/"/g,'""')+'"').join(",")).join("\r\n");
     const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
