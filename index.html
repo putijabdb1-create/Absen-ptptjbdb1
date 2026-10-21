@@ -842,8 +842,8 @@ function kirimAbsensi(mode) {
       })
     })
     .then(() => {
-      statusMsg.textContent = "Permintaan absensi sudah dikirim. Jangan kirim ulang; pastikan data tercatat sebelum mencoba lagi.";
-      alert("Permintaan absensi dikirim. Karena respons server dibatasi browser, jangan tekan ulang. Pastikan data masuk di rekap/Google Sheets.");
+      statusMsg.textContent = "Permintaan absensi sudah Proses Masuk Database";
+      alert("Jangan tekan ulang pastikan anda Absen Pulang pada saat Jam Pulang.");
       // Lepaskan kunci setelah permintaan selesai agar tombol Absen Pulang
       // tetap dapat digunakan setelah Absen Masuk. Server tetap memvalidasi
       // duplikasi berdasarkan NIK dan tanggal.
