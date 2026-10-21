@@ -291,7 +291,7 @@
           <div class="filter-grid">
             <div><label for="dashboardFrom">Tanggal Mulai</label><input type="date" id="dashboardFrom"></div>
             <div><label for="dashboardTo">Tanggal Akhir</label><input type="date" id="dashboardTo"></div>
-            <div><label for="dashboardLoker">Loker / Divisi</label><select id="dashboardLoker"><option value="">Semua loker</option></select></div>
+            <div><label for="dashboardLoker">Loker / Divisi (bisa pilih lebih dari satu)</label><select id="dashboardLoker" multiple size="5" aria-describedby="dashboardLokerHelp"><option value="">Semua loker / divisi</option></select><small id="dashboardLokerHelp" class="small">Pilih beberapa divisi dengan menandai pilihannya. Jika tidak memilih apa pun, semua divisi ditampilkan.</small><div class="filter-actions" style="margin-top:6px;grid-template-columns:1fr 1fr"><button class="btn" style="background:#e5e7eb;color:#1f2937" type="button" onclick="pilihSemuaDivisiDashboard(true)">Pilih Semua</button><button class="btn" style="background:#e5e7eb;color:#1f2937" type="button" onclick="pilihSemuaDivisiDashboard(false)">Hapus Pilihan</button></div></div>
             <div><label for="dashboardArea">Area</label><select id="dashboardArea">
               <option value="">PILIH SEMUA AREA</option>
               <option value="CMI-NJG">CMI-NJG</option>
@@ -842,8 +842,8 @@ function kirimAbsensi(mode) {
       })
     })
     .then(() => {
-      statusMsg.textContent = "Permintaan absensi sudah Proses Masuk Database";
-      alert("Jangan tekan ulang pastikan Absen Masuk sudah masuk selamat bekerja K3.");
+      statusMsg.textContent = "Absen Sudah Masuk selamat bekerja pastikan K3 ";
+      alert("Absen Sudah Terkirim.jangan tekan ulang. Selamat bekerja jangan lupa K3 ");
       // Lepaskan kunci setelah permintaan selesai agar tombol Absen Pulang
       // tetap dapat digunakan setelah Absen Masuk. Server tetap memvalidasi
       // duplikasi berdasarkan NIK dan tanggal.
@@ -992,8 +992,22 @@ function kirimAbsensi(mode) {
   }
 
   function daftarTeknisiDashboard() {
-    // Roster diambil dari daftar USER_LINES yang sama dengan login saat ini.
-    return USERS.filter(u => String(u.divisi || "").toUpperCase().startsWith("TEKNISI"));
+    // Gunakan daftar USER_LINES yang sama; sertakan peran operasional dan pengelola.
+    const roles = ["ADMIN", "KACAB", "LEADER", "GUDANG", "SPV_GUDANG"];
+    return USERS.filter(u => {
+      const divisi = String(u.divisi || "").trim().toUpperCase();
+      return divisi.startsWith("TEKNISI") || roles.includes(divisi);
+    });
+  }
+
+  function pilihSemuaDivisiDashboard(pilih) {
+    const select = document.getElementById("dashboardLoker");
+    Array.from(select.options).forEach(option => {
+      if (option.value !== "") option.selected = !!pilih;
+    });
+    // Opsi kosong adalah kondisi semua divisi; tidak dipilih ketika memilih spesifik.
+    const semua = Array.from(select.options).find(option => option.value === "");
+    if (semua) semua.selected = !pilih;
   }
 
   let dashboardStatsTerakhir = [];
@@ -1010,12 +1024,13 @@ function kirimAbsensi(mode) {
     if (!toInput.value) toInput.value = todayStr;
     const loker = document.getElementById("dashboardLoker");
     const area = document.getElementById("dashboardArea");
-    const oldLoker = loker.value;
+    const oldLoker = Array.from(loker.selectedOptions).map(option => option.value);
     const oldArea = area.value;
     const roster = daftarTeknisiDashboard();
-    const divisis = [...new Set(roster.map(u => u.divisi).filter(Boolean))].sort();
-    loker.innerHTML = '<option value="">Semua loker</option>' + divisis.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
-    loker.value = oldLoker;
+    const divisis = [...new Set(roster.map(u => String(u.divisi || "").trim().toUpperCase()).filter(Boolean))].sort();
+    loker.innerHTML = '<option value="">Semua loker / divisi</option>' + divisis.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join("");
+    Array.from(loker.options).forEach(option => { option.selected = oldLoker.includes(option.value); });
+    if (!oldLoker.length || oldLoker.includes("")) loker.options[0].selected = true;
     area.value = oldArea;
   }
 
@@ -1037,7 +1052,9 @@ function kirimAbsensi(mode) {
       document.getElementById("dashboardMsg").textContent = "Tanggal mulai tidak boleh melewati tanggal akhir.";
       return;
     }
-    const lokerFilter = document.getElementById("dashboardLoker").value;
+    const lokerSelect = document.getElementById("dashboardLoker");
+    const selectedDivisis = Array.from(lokerSelect.selectedOptions).map(option => option.value).filter(Boolean);
+    const lokerFilter = selectedDivisis;
     const areaFilter = document.getElementById("dashboardArea").value;
     const roster = daftarTeknisiDashboard().filter(u => {
       const userAreas = String(u.defaultArea || "").toUpperCase().split(/[,;/|]+/).map(v => v.trim()).filter(Boolean)
@@ -1049,7 +1066,9 @@ function kirimAbsensi(mode) {
       };
       const requiredAreas = areaGroups[areaFilter] || [];
       const matchesArea = !areaFilter || requiredAreas.every(code => userAreas.includes(code));
-      return (!lokerFilter || u.divisi === lokerFilter) && matchesArea;
+      const divisiUser = String(u.divisi || "").trim().toUpperCase();
+      const matchesDivisi = !lokerFilter.length || lokerFilter.includes(divisiUser);
+      return matchesDivisi && matchesArea;
     });
     document.getElementById("dashboardMsg").textContent = "Mengambil data absensi " + from + " s.d. " + to + "...";
     document.getElementById("dashboardTableWrap").innerHTML = "";
