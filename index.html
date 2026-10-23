@@ -318,12 +318,12 @@
         </div>
         <div class="dash-panel">
           <div class="panel-title"><span class="panel-icon">📊</span> Rekap Per Teknisi</div>
-          <div class="table-toolbar"><span class="small">Geser tabel ke samping untuk melihat semua kolom.</span></div>
+          <div class="table-toolbar"><span class="small">Geser tabel ke samping untuk melihat semua kolom.</span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapTeknisiPNG()">↓ PNG</button><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapExcel()">↓ Excel Gabungan</button></div></div>
           <div id="dashboardTableWrap" class="table-scroll"></div>
         </div>
         <div class="dash-panel">
           <div class="panel-title"><span class="panel-icon">📅</span> Rekap Absen Per Tanggal</div>
-          <div class="table-toolbar"><span class="small">Status harian sesuai periode dan filter yang dipilih.</span><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapHarianPNG()">⬇ Download Gambar PNG</button></div>
+          <div class="table-toolbar"><span class="small">Status harian sesuai periode dan filter yang dipilih.</span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapHarianPNG()">↓ PNG</button><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapExcel()">↓ Excel Gabungan</button></div></div>
           <div id="dashboardDailyTableWrap" class="table-scroll"></div>
         </div>
       </section>
@@ -418,6 +418,7 @@
     </div>
   </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   /********* LOGIN USER SIMPLE *********/
   // Format 1 baris user:
@@ -858,8 +859,11 @@ function kirimAbsensi(mode) {
       })
     })
     .then(() => {
-      statusMsg.textContent = "Absen Sudah Masuk selamat bekerja pastikan K3 Jangan Lupa MBG ";
-      alert("Absen Sudah Masuk selamat bekerja pastikan K3 Jangan Lupa MBG");
+      const pesanSukses = mode === "pulang"
+        ? "Selamat istirahat terimakasih atas Kerja hari ini salam kepada keluarga"
+        : "Absen Sudah Masuk selamat bekerja pastikan K3 Jangan Lupa MBG";
+      statusMsg.textContent = pesanSukses;
+      alert(pesanSukses);
       // Lepaskan kunci setelah permintaan selesai agar tombol Absen Pulang
       // tetap dapat digunakan setelah Absen Masuk. Server tetap memvalidasi
       // duplikasi berdasarkan NIK dan tanggal.
@@ -1185,6 +1189,79 @@ function kirimAbsensi(mode) {
     .catch(err => { document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message; });
   }
 
+
+  // Unduh tabel sebagai PNG; hanya menambahkan fitur ekspor, tidak mengubah isi rekap.
+  function downloadTableAsPNG(wrapId, filename) {
+    const wrap = document.getElementById(wrapId);
+    const table = wrap && wrap.querySelector("table");
+    if (!table) {
+      document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download PNG.";
+      return;
+    }
+    const exportClone = table.cloneNode(true);
+    exportClone.style.width = "max-content";
+    exportClone.style.minWidth = "100%";
+    exportClone.style.fontSize = "12px";
+    exportClone.querySelectorAll("th").forEach(th => {
+      th.style.position = "static";
+      th.style.background = "#e0f2fe";
+      th.style.color = "#0c4a6e";
+    });
+    const container = document.createElement("div");
+    container.style.cssText = "position:fixed;left:-100000px;top:0;background:#fff;padding:18px;width:max-content;max-width:none;z-index:-1";
+    const heading = document.createElement("h3");
+    heading.textContent = filename.replace(/_/g," ");
+    heading.style.cssText = "font:600 16px Arial,sans-serif;color:#0f172a;margin:0 0 12px";
+    container.appendChild(heading);
+    container.appendChild(exportClone);
+    document.body.appendChild(container);
+    const saveCanvas = () => {
+      if (typeof html2canvas !== "function") {
+        container.remove();
+        document.getElementById("dashboardMsg").textContent = "Fitur PNG membutuhkan koneksi internet untuk memuat pustaka gambar. Coba muat ulang halaman.";
+        return;
+      }
+      html2canvas(container, {backgroundColor:"#ffffff",scale:2, useCORS:true, logging:false}).then(canvas => {
+        const a = document.createElement("a");
+        a.download = filename + ".png";
+        a.href = canvas.toDataURL("image/png");
+        a.click();
+        container.remove();
+      }).catch(() => {
+        container.remove();
+        document.getElementById("dashboardMsg").textContent = "Gagal membuat PNG. Coba lagi setelah rekap tampil.";
+      });
+    };
+    saveCanvas();
+  }
+  function downloadRekapTeknisiPNG() {
+    downloadTableAsPNG("dashboardTableWrap", "Rekap_Per_Teknisi_" + dashboardPeriodeTerakhir.from + "_sd_" + dashboardPeriodeTerakhir.to);
+  }
+  function downloadRekapHarianPNG() {
+    downloadTableAsPNG("dashboardDailyTableWrap", "Rekap_Absen_Per_Tanggal_" + dashboardPeriodeTerakhir.from + "_sd_" + dashboardPeriodeTerakhir.to);
+  }
+  // File Excel kompatibel .xls berisi dua tabel rekap dalam satu lembar.
+  function downloadRekapExcel() {
+    const techTable = document.querySelector("#dashboardTableWrap table");
+    const dailyTable = document.querySelector("#dashboardDailyTableWrap table");
+    if (!techTable || !dailyTable || !dashboardStatsTerakhir.length) {
+      document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download Excel.";
+      return;
+    }
+    const areaLabel = document.getElementById("dashboardArea").value || "PILIH SEMUA AREA";
+    const workbookHtml = '<html><head><meta charset="UTF-8"></head><body>' +
+      '<h2>Rekap Per Teknisi</h2><p>Periode: ' + escapeHtml(dashboardPeriodeTerakhir.from) + ' s.d. ' + escapeHtml(dashboardPeriodeTerakhir.to) + ' | Area: ' + escapeHtml(areaLabel) + '</p>' +
+      techTable.outerHTML + '<br><br><h2>Rekap Absen Per Tanggal</h2>' + dailyTable.outerHTML +
+      '</body></html>';
+    const blob = new Blob(["\ufeff", workbookHtml], {type:"application/vnd.ms-excel;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Rekap_Teknisi_dan_Per_Tanggal_" + dashboardPeriodeTerakhir.from + "_sd_" + dashboardPeriodeTerakhir.to + ".xls";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function downloadRekapDashboard() {
     if (!dashboardStatsTerakhir.length) {
       document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download.";
@@ -1233,6 +1310,9 @@ function kirimAbsensi(mode) {
   window.logoutAdmin = logoutAdmin;
   window.muatDashboard = muatDashboard;
   window.downloadRekapDashboard = downloadRekapDashboard;
+  window.downloadRekapTeknisiPNG = downloadRekapTeknisiPNG;
+  window.downloadRekapHarianPNG = downloadRekapHarianPNG;
+  window.downloadRekapExcel = downloadRekapExcel;
   window.downloadRekapHarianPNG = downloadRekapHarianPNG;
 </script>
 </body>
