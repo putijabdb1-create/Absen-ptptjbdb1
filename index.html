@@ -216,6 +216,17 @@
     #adminDashboard .admin-table th, #adminDashboard .admin-table td { padding:9px 8px; }
     #adminDashboard .admin-table tbody tr:nth-child(even) { background:#f8fafc; }
     #adminDashboard .admin-table tbody tr:hover { background:#ecfeff; }
+    #adminDashboard .daily-table { width:max-content; min-width:100%; border-collapse:collapse; font-size:10px; }
+    #adminDashboard .daily-table th { position:sticky; top:0; background:#e0f2fe; color:#0c4a6e; text-transform:uppercase; }
+    #adminDashboard .daily-table th, #adminDashboard .daily-table td { padding:8px 7px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+    #adminDashboard .daily-table tbody tr:nth-child(even) { background:#f8fafc; }
+    #adminDashboard .daily-table .daily-status { display:inline-block; padding:3px 6px; border-radius:7px; font-weight:700; font-size:9px; }
+    #adminDashboard .daily-status.masuk { background:#dcfce7; color:#166534; }
+    #adminDashboard .daily-status.libur { background:#fee2e2; color:#991b1b; }
+    #adminDashboard .daily-status.izin { background:#f3e8ff; color:#6b21a8; }
+    #adminDashboard .daily-status.sakit { background:#fef3c7; color:#92400e; }
+    #adminDashboard .daily-status.cuti { background:#dbeafe; color:#1d4ed8; }
+    #adminDashboard .daily-status.kosong { background:#f1f5f9; color:#64748b; }
     #adminDashboard .small { line-height:1.55; }
     #dashboardMsg { padding:8px 10px; border-radius:10px; background:#f1f5f9; }
     @media (min-width:700px) {
@@ -309,6 +320,11 @@
           <div class="panel-title"><span class="panel-icon">📊</span> Rekap Per Teknisi</div>
           <div class="table-toolbar"><span class="small">Geser tabel ke samping untuk melihat semua kolom.</span></div>
           <div id="dashboardTableWrap" class="table-scroll"></div>
+        </div>
+        <div class="dash-panel">
+          <div class="panel-title"><span class="panel-icon">📅</span> Rekap Absen Per Tanggal</div>
+          <div class="table-toolbar"><span class="small">Status harian sesuai periode dan filter yang dipilih.</span><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapHarianPNG()">⬇ Download Gambar PNG</button></div>
+          <div id="dashboardDailyTableWrap" class="table-scroll"></div>
         </div>
       </section>
 
@@ -1012,6 +1028,7 @@ function kirimAbsensi(mode) {
 
   let dashboardStatsTerakhir = [];
   let dashboardPeriodeTerakhir = {from:"", to:""};
+  let dashboardDailyTerakhir = { headers: [], rows: [] };
 
   function siapkanFilterDashboard() {
     const fromInput = document.getElementById("dashboardFrom");
@@ -1129,6 +1146,40 @@ function kirimAbsensi(mode) {
       dashboardStatsTerakhir.forEach(s => { table += '<tr><td>'+escapeHtml(s.user.nama)+'</td><td>'+escapeHtml(s.user.nik)+'</td><td>'+escapeHtml(s.user.divisi)+'</td><td>'+escapeHtml(s.user.defaultArea)+'</td><td>'+s.masuk+'</td><td>'+s.libur+'</td><td>'+s.izin+'</td><td>'+s.sakit+'</td><td>'+s.cuti+'</td><td>'+s.totalHari+'</td><td>'+s.tanpaCatatan+'</td></tr>'; });
       table += '</tbody></table><p class="small">*Tanggal tanpa catatan dihitung dalam rentang periode sampai hari ini. Angka ini belum berarti mangkir; jadwal kerja perlu diterapkan terlebih dahulu.</p>';
       document.getElementById("dashboardTableWrap").innerHTML = table;
+      // Tambahan: rekap per tanggal. Tidak mengubah perhitungan rekap utama.
+      const dateList = [];
+      const startDate = new Date(from + "T00:00:00");
+      const endDate = new Date(to + "T00:00:00");
+      const todayForDaily = new Date(); todayForDaily.setHours(0,0,0,0);
+      const dailyEnd = endDate > todayForDaily ? todayForDaily : endDate;
+      for (let d = new Date(startDate); d <= dailyEnd; d.setDate(d.getDate()+1)) {
+        dateList.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"));
+      }
+      const statusMap = {masuk:"MASUK",libur:"LIBUR",cuti:"CUTI",sakit:"SAKIT",izin:"IZIN",ijin:"IZIN"};
+      const dailyRows = roster.slice().sort((a,b)=>a.nama.localeCompare(b.nama)).map(u => {
+        const identity = keyForIdentity(u.nik,u.nama);
+        const ownRows = byIdentity[identity] || [];
+        const statuses = dateList.map(date => {
+          const sameDay = ownRows.filter(r => String(r.date||"").slice(0,10) === date);
+          if (!sameDay.length) return "—";
+          const foundStatus = sameDay.map(r => String(r.ket||"").toLowerCase().trim()).find(k => statusMap[k]);
+          if (foundStatus) return statusMap[foundStatus];
+          if (sameDay.some(r => r.jamMasuk)) return "MASUK";
+          return "—";
+        });
+        return { nama:u.nama, nik:u.nik, divisi:u.divisi, area:u.defaultArea, statuses };
+      });
+      dashboardDailyTerakhir = { headers: dateList, rows: dailyRows };
+      const formatDateHeader = date => { const parts=date.split("-"); return parts[2]+"/"+parts[1]+"/"+parts[0]; };
+      let dailyHtml = '<table class="daily-table"><thead><tr><th>Nama Teknisi</th><th>NIK</th><th>Divisi</th><th>Area</th>' + dateList.map(d=>'<th>'+formatDateHeader(d)+'</th>').join('') + '</tr></thead><tbody>';
+      if (!dailyRows.length) dailyHtml += '<tr><td colspan="'+(4+dateList.length)+'">Tidak ada teknisi untuk filter ini.</td></tr>';
+      dailyRows.forEach(r => {
+        dailyHtml += '<tr><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td>';
+        r.statuses.forEach(st => { const cls = st==='MASUK'?'masuk':st==='LIBUR'?'libur':st==='IZIN'?'izin':st==='SAKIT'?'sakit':st==='CUTI'?'cuti':'kosong'; dailyHtml += '<td><span class="daily-status '+cls+'">'+st+'</span></td>'; });
+        dailyHtml += '</tr>';
+      });
+      dailyHtml += '</tbody></table>';
+      document.getElementById("dashboardDailyTableWrap").innerHTML = dailyHtml;
       document.getElementById("dashboardMsg").textContent = "Rekap selesai: "+from+" s.d. "+to+" • "+roster.length+" teknisi • "+records.length+" baris absensi.";
     })
     .catch(err => { document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message; });
@@ -1149,6 +1200,27 @@ function kirimAbsensi(mode) {
   }
 
 
+  function downloadRekapHarianPNG() {
+    if (!dashboardDailyTerakhir || !dashboardDailyTerakhir.rows || !dashboardDailyTerakhir.rows.length) {
+      document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download gambar.";
+      return;
+    }
+    const data = dashboardDailyTerakhir;
+    const headers = ["Nama Teknisi","NIK","Divisi","Area", ...data.headers.map(d=>{const p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];})];
+    const rows = data.rows.map(r=>[r.nama,r.nik,r.divisi,r.area,...r.statuses]);
+    const colWidths = headers.map((h,i)=>Math.max(i===0?150: i<4?95:78, String(h).length*7+18, ...rows.map(r=>String(r[i]||"").length*7+18)));
+    const rowH=34, headH=42, pad=18, width=colWidths.reduce((a,b)=>a+b,0)+pad*2, height=pad*2+headH+rows.length*rowH+48;
+    const scale=2, canvas=document.createElement("canvas"); canvas.width=width*scale; canvas.height=height*scale;
+    const ctx=canvas.getContext("2d"); ctx.scale(scale,scale); ctx.fillStyle="#f8fafc"; ctx.fillRect(0,0,width,height);
+    ctx.fillStyle="#0f172a"; ctx.font="bold 18px Arial"; ctx.fillText("REKAP ABSEN PER TANGGAL - PT PUTRA TIMUR JAYA",pad,pad+18);
+    ctx.fillStyle="#64748b"; ctx.font="11px Arial"; ctx.fillText("Periode: "+dashboardPeriodeTerakhir.from+" s/d "+dashboardPeriodeTerakhir.to+" | Dibuat: "+new Date().toLocaleString("id-ID"),pad,pad+36);
+    let y=pad+48; let x=pad;
+    headers.forEach((h,i)=>{ctx.fillStyle="#e0f2fe";ctx.fillRect(x,y,colWidths[i],headH);ctx.strokeStyle="#cbd5e1";ctx.strokeRect(x,y,colWidths[i],headH);ctx.fillStyle="#0c4a6e";ctx.font="bold 10px Arial";ctx.textBaseline="middle";ctx.fillText(String(h),x+7,y+headH/2);x+=colWidths[i];});
+    y+=headH;
+    rows.forEach((r,ri)=>{x=pad;r.forEach((v,i)=>{ctx.fillStyle=ri%2===0?"#ffffff":"#f8fafc";ctx.fillRect(x,y,colWidths[i],rowH);ctx.strokeStyle="#e2e8f0";ctx.strokeRect(x,y,colWidths[i],rowH);let value=String(v==null?"":v);ctx.font="10px Arial";ctx.textBaseline="middle";ctx.fillStyle=value==="MASUK"?"#166534":value==="LIBUR"?"#991b1b":value==="IZIN"?"#6b21a8":value==="SAKIT"?"#92400e":value==="CUTI"?"#1d4ed8":"#334155";const max=Math.max(8,colWidths[i]-14);while(ctx.measureText(value).width>max&&value.length>3)value=value.slice(0,-2)+"…";ctx.fillText(value,x+7,y+rowH/2);x+=colWidths[i];});y+=rowH;});
+    canvas.toBlob(blob=>{if(!blob){document.getElementById("dashboardMsg").textContent="Gagal membuat gambar PNG.";return;}const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="Rekap_Absen_Per_Tanggal_"+dashboardPeriodeTerakhir.from+"_sd_"+dashboardPeriodeTerakhir.to+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);},"image/png");
+  }
+
   // expose ke window
   window.handleLogin  = handleLogin;
   window.handleLogout = handleLogout;
@@ -1161,6 +1233,7 @@ function kirimAbsensi(mode) {
   window.logoutAdmin = logoutAdmin;
   window.muatDashboard = muatDashboard;
   window.downloadRekapDashboard = downloadRekapDashboard;
+  window.downloadRekapHarianPNG = downloadRekapHarianPNG;
 </script>
 </body>
 </html>
