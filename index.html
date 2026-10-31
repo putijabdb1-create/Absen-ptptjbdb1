@@ -315,7 +315,8 @@
           <p class="small">Hanya untuk teknisi yang belum memiliki catatan absensi pada tanggal yang dipilih. Input ini tidak memerlukan foto maupun sharelok.</p>
           <div class="filter-grid">
             <div><label for="adminStatusDate">Tanggal</label><input type="date" id="adminStatusDate"></div>
-            <div><label for="adminStatusTechnician">Nama Teknisi</label><select id="adminStatusTechnician"><option value="">Pilih teknisi</option></select></div>
+            <div><label for="adminStatusDivision">Divisi</label><select id="adminStatusDivision"><option value="">Pilih divisi terlebih dahulu</option></select></div>
+            <div><label for="adminStatusTechnician">Nama Teknisi</label><select id="adminStatusTechnician" disabled><option value="">Pilih divisi terlebih dahulu</option></select></div>
             <div><label for="adminStatusType">Status</label><select id="adminStatusType"><option value="">Pilih status</option><option value="libur">LIBUR</option><option value="cuti">CUTI</option><option value="sakit">SAKIT</option><option value="izin">IZIN</option></select></div>
             <div><label for="adminStatusNote">Keterangan</label><input type="text" id="adminStatusNote" maxlength="250" placeholder="Isi keterangan / alasan"></div>
           </div>
@@ -1090,15 +1091,45 @@ function kirimAbsensi(mode) {
   }
 
   function siapkanFormStatusAdmin() {
-    const select = document.getElementById("adminStatusTechnician");
-    if (!select) return;
-    const oldValue = select.value;
-    const teknisi = USERS.filter(u => String(u.divisi || "").trim().toUpperCase().startsWith("TEKNISI"))
-      .slice().sort((a,b)=>String(a.nama||"").localeCompare(String(b.nama||"")));
-    select.innerHTML = '<option value="">Pilih teknisi</option>' + teknisi.map(u =>
-      '<option value="'+escapeHtml(u.nik)+'">'+escapeHtml(u.nama)+' · '+escapeHtml(u.nik)+'</option>'
+    const divisionSelect = document.getElementById("adminStatusDivision");
+    const technicianSelect = document.getElementById("adminStatusTechnician");
+    if (!divisionSelect || !technicianSelect) return;
+
+    const oldDivision = divisionSelect.value;
+    const oldTechnician = technicianSelect.value;
+    const teknisi = USERS.filter(u => String(u.divisi || "").trim().toUpperCase().startsWith("TEKNISI"));
+    const divisis = [...new Set(teknisi.map(u => String(u.divisi || "").trim()).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b));
+
+    divisionSelect.innerHTML = '<option value="">Pilih divisi terlebih dahulu</option>' + divisis.map(divisi =>
+      '<option value="'+escapeHtml(divisi)+'">'+escapeHtml(divisi)+'</option>'
     ).join("");
-    if (oldValue) select.value = oldValue;
+    if (oldDivision && divisis.includes(oldDivision)) divisionSelect.value = oldDivision;
+
+    const isiPilihanTeknisi = (keepSelection) => {
+      const selectedDivision = divisionSelect.value;
+      const previousNik = keepSelection ? oldTechnician : "";
+      const filtered = selectedDivision
+        ? teknisi.filter(u => String(u.divisi || "").trim() === selectedDivision)
+            .slice().sort((a,b)=>String(a.nama||"").localeCompare(String(b.nama||"")))
+        : [];
+      technicianSelect.innerHTML = '<option value="">'+(selectedDivision ? 'Pilih teknisi' : 'Pilih divisi terlebih dahulu')+'</option>' + filtered.map(u =>
+        '<option value="'+escapeHtml(u.nik)+'">'+escapeHtml(u.nama)+' · '+escapeHtml(u.nik)+'</option>'
+      ).join("");
+      technicianSelect.disabled = !selectedDivision;
+      if (previousNik && filtered.some(u => String(u.nik) === String(previousNik))) technicianSelect.value = previousNik;
+    };
+
+    if (!divisionSelect.dataset.changeBound) {
+      divisionSelect.addEventListener("change", () => {
+        isiPilihanTeknisi(false);
+        const msg = document.getElementById("adminStatusMsg");
+        if (msg) msg.textContent = "";
+      });
+      divisionSelect.dataset.changeBound = "1";
+    }
+    isiPilihanTeknisi(true);
+
     const dateInput = document.getElementById("adminStatusDate");
     if (dateInput && !dateInput.value) {
       const now = new Date();
@@ -1108,18 +1139,22 @@ function kirimAbsensi(mode) {
 
   function simpanStatusAdmin() {
     if (!currentAdmin) return;
+    const divisiDipilih = document.getElementById("adminStatusDivision").value;
     const nik = document.getElementById("adminStatusTechnician").value;
     const tanggal = document.getElementById("adminStatusDate").value;
     const status = document.getElementById("adminStatusType").value;
     const keterangan = document.getElementById("adminStatusNote").value.trim();
     const msg = document.getElementById("adminStatusMsg");
     const btn = document.getElementById("saveAdminStatusBtn");
-    if (!nik || !tanggal || !status || !keterangan) {
-      msg.textContent = "Lengkapi teknisi, tanggal, status, dan keterangan.";
+    if (!divisiDipilih || !nik || !tanggal || !status || !keterangan) {
+      msg.textContent = "Pilih divisi dan teknisi, lalu lengkapi tanggal, status, dan keterangan.";
       return;
     }
     const user = USERS.find(u => String(u.nik) === String(nik));
-    if (!user) { msg.textContent = "Data teknisi tidak ditemukan."; return; }
+    if (!user || String(user.divisi || "").trim() !== divisiDipilih) {
+      msg.textContent = "Teknisi tidak sesuai dengan divisi yang dipilih.";
+      return;
+    }
     btn.disabled = true;
     msg.textContent = "Menyimpan status Admin...";
     fetch(FETCH_URL_WEB_APP, {
