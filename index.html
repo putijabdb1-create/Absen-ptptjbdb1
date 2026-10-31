@@ -310,6 +310,19 @@
           <div class="admin-kpi kpi-cuti"><div>📅 Cuti</div><strong id="kpiCuti">0</strong><small>Catatan cuti</small></div>
           <div class="admin-kpi kpi-empty" style="grid-column:1/-1;"><div>📌 Belum Ada Catatan Absensi</div><strong id="kpiTanpaCatatan">0</strong><small>Belum dianggap mangkir sampai jadwal kerja diterapkan.</small></div>
         </div>
+        <div class="dash-panel" id="adminStatusPanel">
+          <div class="panel-title"><span class="panel-icon">📝</span> Input Status Teknisi (Khusus Admin)</div>
+          <p class="small">Hanya untuk teknisi yang belum memiliki catatan absensi pada tanggal yang dipilih. Input ini tidak memerlukan foto maupun sharelok.</p>
+          <div class="filter-grid">
+            <div><label for="adminStatusDate">Tanggal</label><input type="date" id="adminStatusDate"></div>
+            <div><label for="adminStatusTechnician">Nama Teknisi</label><select id="adminStatusTechnician"><option value="">Pilih teknisi</option></select></div>
+            <div><label for="adminStatusType">Status</label><select id="adminStatusType"><option value="">Pilih status</option><option value="libur">LIBUR</option><option value="cuti">CUTI</option><option value="sakit">SAKIT</option><option value="izin">IZIN</option></select></div>
+            <div><label for="adminStatusNote">Keterangan</label><input type="text" id="adminStatusNote" maxlength="250" placeholder="Isi keterangan / alasan"></div>
+          </div>
+          <div class="filter-actions"><button class="btn btn-rekap" type="button" id="saveAdminStatusBtn" onclick="simpanStatusAdmin()">Simpan Status</button></div>
+          <div id="adminStatusMsg" class="small" role="status" style="margin-top:8px"></div>
+        </div>
+
         <div class="dash-panel">
           <div class="panel-title"><span class="panel-icon">⚙️</span> Filter Rekap Absensi</div>
           <div class="filter-grid">
@@ -1073,6 +1086,63 @@ function kirimAbsensi(mode) {
     Array.from(loker.options).forEach(option => { option.selected = oldLoker.includes(option.value); });
     if (!oldLoker.length || oldLoker.includes("")) loker.options[0].selected = true;
     area.value = oldArea;
+    siapkanFormStatusAdmin();
+  }
+
+  function siapkanFormStatusAdmin() {
+    const select = document.getElementById("adminStatusTechnician");
+    if (!select) return;
+    const oldValue = select.value;
+    const teknisi = USERS.filter(u => String(u.divisi || "").trim().toUpperCase().startsWith("TEKNISI"))
+      .slice().sort((a,b)=>String(a.nama||"").localeCompare(String(b.nama||"")));
+    select.innerHTML = '<option value="">Pilih teknisi</option>' + teknisi.map(u =>
+      '<option value="'+escapeHtml(u.nik)+'">'+escapeHtml(u.nama)+' · '+escapeHtml(u.nik)+'</option>'
+    ).join("");
+    if (oldValue) select.value = oldValue;
+    const dateInput = document.getElementById("adminStatusDate");
+    if (dateInput && !dateInput.value) {
+      const now = new Date();
+      dateInput.value = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+    }
+  }
+
+  function simpanStatusAdmin() {
+    if (!currentAdmin) return;
+    const nik = document.getElementById("adminStatusTechnician").value;
+    const tanggal = document.getElementById("adminStatusDate").value;
+    const status = document.getElementById("adminStatusType").value;
+    const keterangan = document.getElementById("adminStatusNote").value.trim();
+    const msg = document.getElementById("adminStatusMsg");
+    const btn = document.getElementById("saveAdminStatusBtn");
+    if (!nik || !tanggal || !status || !keterangan) {
+      msg.textContent = "Lengkapi teknisi, tanggal, status, dan keterangan.";
+      return;
+    }
+    const user = USERS.find(u => String(u.nik) === String(nik));
+    if (!user) { msg.textContent = "Data teknisi tidak ditemukan."; return; }
+    btn.disabled = true;
+    msg.textContent = "Menyimpan status Admin...";
+    fetch(FETCH_URL_WEB_APP, {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "adminStatus", nik: nik, nama: user.nama, divisi: user.divisi,
+        area: user.defaultArea || "", date: tanggal, status: status, note: keterangan,
+        admin: currentAdmin.user || currentAdmin.username || "ADMIN"
+      })
+    })
+    .then(res => res.text())
+    .then(result => {
+      const text = String(result || "").trim();
+      if (text.indexOf("OK ADMIN STATUS") === 0) {
+        msg.textContent = "Status berhasil disimpan. Rekap sedang diperbarui...";
+        document.getElementById("adminStatusNote").value = "";
+        muatDashboard();
+      } else {
+        msg.textContent = text.replace(/^ERROR:\s*/, "Gagal: ") || "Gagal menyimpan status.";
+      }
+    })
+    .catch(err => { msg.textContent = "Gagal menyimpan: " + err.message; })
+    .finally(() => { btn.disabled = false; });
   }
 
   function escapeHtml(value) {
