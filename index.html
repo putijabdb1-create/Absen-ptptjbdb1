@@ -310,20 +310,19 @@
           <div class="admin-kpi kpi-cuti"><div>📅 Cuti</div><strong id="kpiCuti">0</strong><small>Catatan cuti</small></div>
           <div class="admin-kpi kpi-empty" style="grid-column:1/-1;"><div>📌 Belum Ada Catatan Absensi</div><strong id="kpiTanpaCatatan">0</strong><small>Belum dianggap mangkir sampai jadwal kerja diterapkan.</small></div>
         </div>
-        <div class="dash-panel" id="adminStatusPanel">
+        <div class="dash-panel" id="adminInputStatusPanel">
           <div class="panel-title"><span class="panel-icon">📝</span> Input Status Teknisi (Khusus Admin)</div>
-          <p class="small">Hanya untuk teknisi yang belum memiliki catatan absensi pada tanggal yang dipilih. Input ini tidak memerlukan foto maupun sharelok.</p>
+          <p class="small">Hanya untuk teknisi yang belum memiliki catatan absensi pada tanggal yang dipilih. Input ini tidak memerlukan foto maupun share lokasi.</p>
           <div class="filter-grid">
-            <div><label for="adminStatusDate">Tanggal</label><input type="date" id="adminStatusDate"></div>
-            <div><label for="adminStatusDivision">Divisi</label><select id="adminStatusDivision"><option value="">Pilih divisi terlebih dahulu</option></select></div>
-            <div><label for="adminStatusTechnician">Nama Teknisi</label><select id="adminStatusTechnician" disabled><option value="">Pilih divisi terlebih dahulu</option></select></div>
-            <div><label for="adminStatusType">Status</label><select id="adminStatusType"><option value="">Pilih status</option><option value="libur">LIBUR</option><option value="cuti">CUTI</option><option value="sakit">SAKIT</option><option value="izin">IZIN</option></select></div>
-            <div><label for="adminStatusNote">Keterangan</label><input type="text" id="adminStatusNote" maxlength="250" placeholder="Isi keterangan / alasan"></div>
+            <div><label for="adminStatusTanggal">Tanggal</label><input type="date" id="adminStatusTanggal"></div>
+            <div><label for="adminStatusDivisi">Divisi</label><select id="adminStatusDivisi"><option value="">Pilih divisi</option></select></div>
+            <div><label for="adminStatusNama">Nama Teknisi</label><select id="adminStatusNama" disabled><option value="">Pilih teknisi</option></select></div>
+            <div><label for="adminStatusJenis">Status</label><select id="adminStatusJenis"><option value="">Pilih status</option><option value="libur">LIBUR</option><option value="cuti">CUTI</option><option value="sakit">SAKIT</option><option value="izin">IZIN</option></select></div>
+            <div><label for="adminStatusKeterangan">Keterangan</label><input id="adminStatusKeterangan" type="text" maxlength="250" placeholder="Isi keterangan / alasan"></div>
           </div>
-          <div class="filter-actions"><button class="btn btn-rekap" type="button" id="saveAdminStatusBtn" onclick="simpanStatusAdmin()">Simpan Status</button></div>
-          <div id="adminStatusMsg" class="small" role="status" style="margin-top:8px"></div>
+          <button class="btn btn-rekap" id="adminStatusSaveBtn" type="button" onclick="simpanStatusAdmin()">Simpan Status</button>
+          <div id="adminStatusMsg" class="small" style="margin-top:8px"></div>
         </div>
-
         <div class="dash-panel">
           <div class="panel-title"><span class="panel-icon">⚙️</span> Filter Rekap Absensi</div>
           <div class="filter-grid">
@@ -1031,6 +1030,7 @@ function kirimAbsensi(mode) {
     document.getElementById("loginInfo").style.display = "none";
     document.getElementById("logoutBtn").style.display = "none";
     siapkanFilterDashboard();
+    siapkanFormStatusAdmin();
     muatDashboard();
   }
 
@@ -1064,6 +1064,63 @@ function kirimAbsensi(mode) {
     if (semua) semua.selected = !pilih;
   }
 
+  // ===== Input status manual oleh Admin: hanya roster divisi terpilih =====
+  function siapkanFormStatusAdmin() {
+    const divisiSelect = document.getElementById("adminStatusDivisi");
+    const namaSelect = document.getElementById("adminStatusNama");
+    const tanggal = document.getElementById("adminStatusTanggal");
+    const today = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    tanggal.value = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate());
+    const divisis = [...new Set(USERS.filter(u => String(u.divisi||"").toUpperCase().startsWith("TEKNISI")).map(u => String(u.divisi||"").toUpperCase()))].sort();
+    divisiSelect.innerHTML = '<option value="">Pilih divisi</option>' + divisis.map(v => '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join("");
+    divisiSelect.onchange = isiNamaStatusAdmin;
+    namaSelect.innerHTML = '<option value="">Pilih teknisi</option>';
+    namaSelect.disabled = true;
+  }
+
+  function isiNamaStatusAdmin() {
+    const divisi = document.getElementById("adminStatusDivisi").value;
+    const namaSelect = document.getElementById("adminStatusNama");
+    const teknisi = USERS.filter(u => String(u.divisi||"").toUpperCase() === divisi);
+    namaSelect.innerHTML = '<option value="">Pilih teknisi</option>' + teknisi.map(u => '<option value="'+escapeHtml(u.nik)+'" data-nama="'+escapeHtml(u.nama)+'" data-area="'+escapeHtml(u.defaultArea||"")+'">'+escapeHtml(u.nama)+' · '+escapeHtml(u.nik)+'</option>').join("");
+    namaSelect.disabled = !divisi;
+  }
+
+  function simpanStatusAdmin() {
+    if (!currentAdmin) { alert("Login Admin diperlukan."); return; }
+    const tanggal = document.getElementById("adminStatusTanggal").value;
+    const divisi = document.getElementById("adminStatusDivisi").value;
+    const namaSelect = document.getElementById("adminStatusNama");
+    const selected = namaSelect.options[namaSelect.selectedIndex];
+    const nik = namaSelect.value;
+    const nama = selected && selected.dataset.nama ? selected.dataset.nama : "";
+    const area = selected && selected.dataset.area ? selected.dataset.area : "";
+    const ket = document.getElementById("adminStatusJenis").value;
+    const note = document.getElementById("adminStatusKeterangan").value.trim();
+    const msg = document.getElementById("adminStatusMsg");
+    if (!tanggal || !divisi || !nik || !ket || !note) {
+      msg.textContent = "Lengkapi tanggal, divisi, nama teknisi, status, dan keterangan.";
+      return;
+    }
+    const btn = document.getElementById("adminStatusSaveBtn");
+    btn.disabled = true;
+    msg.textContent = "Menyimpan status...";
+    fetch(FETCH_URL_WEB_APP, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({mode:"adminStatus",tanggal,nik,nama,divisi,area,ket,note,admin:currentAdmin.username})
+    }).then(res => res.text()).then(result => {
+      if (!String(result).startsWith("OK")) throw new Error(String(result).replace(/^ERROR:\s*/,""));
+      msg.textContent = "Status berhasil disimpan. Rekap sedang diperbarui...";
+      document.getElementById("adminStatusNama").value = "";
+      document.getElementById("adminStatusJenis").value = "";
+      document.getElementById("adminStatusKeterangan").value = "";
+      muatDashboard();
+    }).catch(err => { msg.textContent = "Gagal menyimpan: " + err.message; })
+      .finally(() => { btn.disabled = false; });
+  }
+
   let dashboardStatsTerakhir = [];
   let dashboardPeriodeTerakhir = {from:"", to:""};
   let dashboardDailyTerakhir = { headers: [], rows: [] };
@@ -1087,97 +1144,6 @@ function kirimAbsensi(mode) {
     Array.from(loker.options).forEach(option => { option.selected = oldLoker.includes(option.value); });
     if (!oldLoker.length || oldLoker.includes("")) loker.options[0].selected = true;
     area.value = oldArea;
-    siapkanFormStatusAdmin();
-  }
-
-  function siapkanFormStatusAdmin() {
-    const divisionSelect = document.getElementById("adminStatusDivision");
-    const technicianSelect = document.getElementById("adminStatusTechnician");
-    if (!divisionSelect || !technicianSelect) return;
-
-    const oldDivision = divisionSelect.value;
-    const oldTechnician = technicianSelect.value;
-    const teknisi = USERS.filter(u => String(u.divisi || "").trim().toUpperCase().startsWith("TEKNISI"));
-    const divisis = [...new Set(teknisi.map(u => String(u.divisi || "").trim()).filter(Boolean))]
-      .sort((a,b)=>a.localeCompare(b));
-
-    divisionSelect.innerHTML = '<option value="">Pilih divisi terlebih dahulu</option>' + divisis.map(divisi =>
-      '<option value="'+escapeHtml(divisi)+'">'+escapeHtml(divisi)+'</option>'
-    ).join("");
-    if (oldDivision && divisis.includes(oldDivision)) divisionSelect.value = oldDivision;
-
-    const isiPilihanTeknisi = (keepSelection) => {
-      const selectedDivision = divisionSelect.value;
-      const previousNik = keepSelection ? oldTechnician : "";
-      const filtered = selectedDivision
-        ? teknisi.filter(u => String(u.divisi || "").trim() === selectedDivision)
-            .slice().sort((a,b)=>String(a.nama||"").localeCompare(String(b.nama||"")))
-        : [];
-      technicianSelect.innerHTML = '<option value="">'+(selectedDivision ? 'Pilih teknisi' : 'Pilih divisi terlebih dahulu')+'</option>' + filtered.map(u =>
-        '<option value="'+escapeHtml(u.nik)+'">'+escapeHtml(u.nama)+' · '+escapeHtml(u.nik)+'</option>'
-      ).join("");
-      technicianSelect.disabled = !selectedDivision;
-      if (previousNik && filtered.some(u => String(u.nik) === String(previousNik))) technicianSelect.value = previousNik;
-    };
-
-    if (!divisionSelect.dataset.changeBound) {
-      divisionSelect.addEventListener("change", () => {
-        isiPilihanTeknisi(false);
-        const msg = document.getElementById("adminStatusMsg");
-        if (msg) msg.textContent = "";
-      });
-      divisionSelect.dataset.changeBound = "1";
-    }
-    isiPilihanTeknisi(true);
-
-    const dateInput = document.getElementById("adminStatusDate");
-    if (dateInput && !dateInput.value) {
-      const now = new Date();
-      dateInput.value = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
-    }
-  }
-
-  function simpanStatusAdmin() {
-    if (!currentAdmin) return;
-    const divisiDipilih = document.getElementById("adminStatusDivision").value;
-    const nik = document.getElementById("adminStatusTechnician").value;
-    const tanggal = document.getElementById("adminStatusDate").value;
-    const status = document.getElementById("adminStatusType").value;
-    const keterangan = document.getElementById("adminStatusNote").value.trim();
-    const msg = document.getElementById("adminStatusMsg");
-    const btn = document.getElementById("saveAdminStatusBtn");
-    if (!divisiDipilih || !nik || !tanggal || !status || !keterangan) {
-      msg.textContent = "Pilih divisi dan teknisi, lalu lengkapi tanggal, status, dan keterangan.";
-      return;
-    }
-    const user = USERS.find(u => String(u.nik) === String(nik));
-    if (!user || String(user.divisi || "").trim() !== divisiDipilih) {
-      msg.textContent = "Teknisi tidak sesuai dengan divisi yang dipilih.";
-      return;
-    }
-    btn.disabled = true;
-    msg.textContent = "Menyimpan status Admin...";
-    fetch(FETCH_URL_WEB_APP, {
-      method: "POST",
-      body: JSON.stringify({
-        mode: "adminStatus", nik: nik, nama: user.nama, divisi: user.divisi,
-        area: user.defaultArea || "", date: tanggal, status: status, note: keterangan,
-        admin: currentAdmin.user || currentAdmin.username || "ADMIN"
-      })
-    })
-    .then(res => res.text())
-    .then(result => {
-      const text = String(result || "").trim();
-      if (text.indexOf("OK ADMIN STATUS") === 0) {
-        msg.textContent = "Status berhasil disimpan. Rekap sedang diperbarui...";
-        document.getElementById("adminStatusNote").value = "";
-        muatDashboard();
-      } else {
-        msg.textContent = text.replace(/^ERROR:\s*/, "Gagal: ") || "Gagal menyimpan status.";
-      }
-    })
-    .catch(err => { msg.textContent = "Gagal menyimpan: " + err.message; })
-    .finally(() => { btn.disabled = false; });
   }
 
   function escapeHtml(value) {
@@ -1473,6 +1439,7 @@ function kirimAbsensi(mode) {
   window.handleAdminLogin = handleAdminLogin;
   window.logoutAdmin = logoutAdmin;
   window.muatDashboard = muatDashboard;
+  window.simpanStatusAdmin = simpanStatusAdmin;
   window.downloadRekapDashboard = downloadRekapDashboard;
   window.downloadRekapTeknisiPNG = downloadRekapTeknisiPNG;
   window.downloadRekapHarianPNG = downloadRekapHarianPNG;
