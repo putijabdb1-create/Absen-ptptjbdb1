@@ -217,10 +217,14 @@
     #adminDashboard .admin-table tbody tr:nth-child(even) { background:#f8fafc; }
     #adminDashboard .admin-table tbody tr:hover { background:#ecfeff; }
     #adminDashboard .daily-table { width:max-content; min-width:100%; border-collapse:collapse; font-size:10px; }
-    #adminDashboard .daily-table th { position:sticky; top:0; background:#e0f2fe; color:#0c4a6e; text-transform:uppercase; }
-    #adminDashboard .daily-table th, #adminDashboard .daily-table td { padding:8px 7px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+    #adminDashboard .daily-table th { position:sticky; top:0; background:#e0f2fe; color:#0c4a6e; text-transform:uppercase; text-align:center; }
+    #adminDashboard .daily-table th, #adminDashboard .daily-table td { padding:4px 5px; border-bottom:1px solid #e2e8f0; white-space:nowrap; text-align:center; }
     #adminDashboard .daily-table tbody tr:nth-child(even) { background:#f8fafc; }
-    #adminDashboard .daily-table .daily-status { display:inline-block; padding:3px 6px; border-radius:7px; font-weight:700; font-size:9px; }
+    #adminDashboard .daily-table .daily-date-head { background:#dbeafe; color:#075985; }
+    #adminDashboard .daily-table .daily-subhead { min-width:48px; font-size:9px; padding:4px 3px; }
+    #adminDashboard .daily-table .daily-status { display:block; margin:0 auto 3px; width:max-content; padding:3px 5px; border-radius:5px; font-weight:700; font-size:8px; }
+    #adminDashboard .daily-table .daily-photo-link { display:inline-block; color:#075985; font-size:9px; font-weight:700; text-decoration:underline; cursor:pointer; margin:1px 0; }
+    #adminDashboard .daily-table .daily-time { display:block; color:#334155; font-size:9px; font-variant-numeric:tabular-nums; }
     #adminDashboard .daily-status.masuk { background:#dcfce7; color:#166534; }
     #adminDashboard .daily-status.libur { background:#fee2e2; color:#991b1b; }
     #adminDashboard .daily-status.izin { background:#f3e8ff; color:#6b21a8; }
@@ -431,7 +435,7 @@
   <div class="evidence-modal-card" onclick="event.stopPropagation()">
     <button type="button" class="evidence-modal-close" aria-label="Tutup" onclick="tutupEvidence()">×</button>
     <div id="evidencePreviewTitle" class="evidence-modal-title">Evidence Image</div>
-    <img id="evidencePreviewImage" class="evidence-modal-image" alt="Evidence absensi">
+    <iframe id="evidencePreviewFrame" title="Evidence absensi" style="display:block;width:min(88vw,720px);height:min(76vh,760px);border:0;margin:0 auto;border-radius:8px;background:#f8fafc"></iframe>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1191,18 +1195,22 @@ function kirimAbsensi(mode) {
       });
       dashboardDailyTerakhir = { headers: dateList, rows: dailyRows };
       const formatDateHeader = date => { const parts=date.split("-"); return parts[2]+"/"+parts[1]+"/"+parts[0]; };
-      let dailyHtml = '<table class="daily-table"><thead><tr><th>Nama Teknisi</th><th>NIK</th><th>Divisi</th><th>Area</th>' + dateList.map(d=>'<th>'+formatDateHeader(d)+'</th>').join('') + '</tr></thead><tbody>';
-      if (!dailyRows.length) dailyHtml += '<tr><td colspan="'+(4+dateList.length)+'">Tidak ada teknisi untuk filter ini.</td></tr>';
+      // Tampilan per tanggal: header tanggal, subkolom MASUK/PULANG,
+      // baris Photo, lalu jam. Hanya mengubah presentasi rekap harian.
+      let dailyHtml = '<table class="daily-table"><thead><tr><th rowspan="2">Nama Teknisi</th><th rowspan="2">NIK</th><th rowspan="2">Divisi</th><th rowspan="2">Area</th>' + dateList.map(d=>'<th class="daily-date-head" colspan="2">'+formatDateHeader(d)+'</th>').join('') + '</tr><tr>' + dateList.map(()=>'<th class="daily-subhead">MASUK</th><th class="daily-subhead">PULANG</th>').join('') + '</tr></thead><tbody>';
+      if (!dailyRows.length) dailyHtml += '<tr><td colspan="'+(4+dateList.length*2)+'">Tidak ada teknisi untuk filter ini.</td></tr>';
+      const makeEvidence = (url, title) => url ? '<a href="javascript:void(0)" class="daily-photo-link" data-evidence-url="'+escapeHtml(urlPreviewEvidence(url))+'" data-evidence-title="'+escapeHtml(title)+'" onclick="bukaEvidence(this)">Photo</a>' : '<span class="small">—</span>';
+      const makeAttendanceCell = (status, time, photo, title) => {
+        const st = status || '—';
+        const cls = st==='MASUK'?'masuk':st==='LIBUR'?'libur':st==='IZIN'?'izin':st==='SAKIT'?'sakit':st==='CUTI'?'cuti':'kosong';
+        return '<td><span class="daily-status '+cls+'">'+st+'</span>'+makeEvidence(photo,title)+'<span class="daily-time">'+(time?escapeHtml(String(time)):'—')+'</span></td>';
+      };
       dailyRows.forEach(r => {
         dailyHtml += '<tr><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td>';
         r.details.forEach(d => {
-          const st=d.status; const cls = st==='MASUK'?'masuk':st==='LIBUR'?'libur':st==='IZIN'?'izin':st==='SAKIT'?'sakit':st==='CUTI'?'cuti':'kosong';
-          let cell='<span class="daily-status '+cls+'">'+st+'</span>';
-          if (d.jamMasuk) cell+='<div class="small">M: '+escapeHtml(String(d.jamMasuk).slice(0,5))+'</div>';
-          if (d.fotoMasuk) cell+='<div class="daily-evidence-line"><img class="evidence-thumb" loading="lazy" src="'+escapeHtml(urlThumbnailEvidence(d.fotoMasuk))+'" data-evidence-url="'+escapeHtml(urlPreviewEvidence(d.fotoMasuk))+'" data-evidence-title="Foto Masuk - '+escapeHtml(r.nama)+'" alt="Foto masuk" onclick="bukaEvidence(this)"></div>';
-          if (d.jamPulang) cell+='<div class="small">P: '+escapeHtml(String(d.jamPulang).slice(0,5))+'</div>';
-          if (d.fotoPulang) cell+='<div class="daily-evidence-line"><img class="evidence-thumb" loading="lazy" src="'+escapeHtml(urlThumbnailEvidence(d.fotoPulang))+'" data-evidence-url="'+escapeHtml(urlPreviewEvidence(d.fotoPulang))+'" data-evidence-title="Foto Pulang - '+escapeHtml(r.nama)+'" alt="Foto pulang" onclick="bukaEvidence(this)"></div>';
-          dailyHtml += '<td style="text-align:center;min-width:66px">'+cell+'</td>';
+          const statusIn = d.status === 'MASUK' ? 'MASUK' : (['LIBUR','IZIN','SAKIT','CUTI'].includes(d.status) ? d.status : (d.jamMasuk ? 'MASUK' : '—'));
+          const statusOut = d.jamPulang ? 'PULANG' : '—';
+          dailyHtml += makeAttendanceCell(statusIn,d.jamMasuk,d.fotoMasuk,'Foto Masuk - '+r.nama) + makeAttendanceCell(statusOut,d.jamPulang,d.fotoPulang,'Foto Pulang - '+r.nama);
         });
         dailyHtml += '</tr>';
       });
@@ -1220,25 +1228,24 @@ function kirimAbsensi(mode) {
     const match = value.match(/(?:\/d\/|[?&]id=)([a-zA-Z0-9_-]+)/);
     return match ? match[1] : "";
   }
-  function urlThumbnailEvidence(url) {
-    const id = ambilIdDrive(url);
-    return id ? "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w160" : String(url || "");
-  }
   function urlPreviewEvidence(url) {
-    const id = ambilIdDrive(url);
-    return id ? "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w1200" : String(url || "");
+    const value = String(url || "");
+    const id = ambilIdDrive(value);
+    // Gunakan halaman preview Drive, bukan endpoint thumbnail yang sebelumnya
+    // gagal dimuat pada beberapa akun/perangkat.
+    return id ? "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/preview" : value;
   }
   function bukaEvidence(element) {
     const url = element && element.dataset ? element.dataset.evidenceUrl : "";
     if (!url) return;
-    document.getElementById("evidencePreviewImage").src = url;
+    document.getElementById("evidencePreviewFrame").src = url;
     document.getElementById("evidencePreviewTitle").textContent = element.dataset.evidenceTitle || "Evidence Image";
     document.getElementById("evidencePreviewModal").classList.add("open");
   }
   function tutupEvidence(event) {
     if (event && event.target && event.target.id !== "evidencePreviewModal") return;
     document.getElementById("evidencePreviewModal").classList.remove("open");
-    document.getElementById("evidencePreviewImage").src = "";
+    document.getElementById("evidencePreviewFrame").src = "";
   }
   document.addEventListener("keydown", function(event) { if (event.key === "Escape") tutupEvidence(); });
 
