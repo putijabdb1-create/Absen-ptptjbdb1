@@ -227,6 +227,15 @@
     #adminDashboard .daily-status.sakit { background:#fef3c7; color:#92400e; }
     #adminDashboard .daily-status.cuti { background:#dbeafe; color:#1d4ed8; }
     #adminDashboard .daily-status.kosong { background:#f1f5f9; color:#64748b; }
+    /* Tambahan preview evidence: thumbnail kecil, klik untuk memperbesar */
+    #adminDashboard .evidence-thumb { width:30px; height:30px; object-fit:cover; border:1px solid #cbd5e1; border-radius:5px; cursor:zoom-in; display:inline-block; vertical-align:middle; background:#f8fafc; }
+    #adminDashboard .daily-evidence-line { display:flex; align-items:center; justify-content:center; gap:5px; margin-top:4px; }
+    #evidencePreviewModal { display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,.82); align-items:center; justify-content:center; padding:18px; }
+    #evidencePreviewModal.open { display:flex; }
+    #evidencePreviewModal .evidence-modal-card { position:relative; width:min(92vw,760px); max-height:92vh; background:#fff; border-radius:14px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    #evidencePreviewModal .evidence-modal-title { font-size:14px; font-weight:700; color:#0f172a; margin:0 36px 12px 0; }
+    #evidencePreviewModal .evidence-modal-image { display:block; width:auto; max-width:100%; max-height:78vh; margin:0 auto; object-fit:contain; border-radius:8px; }
+    #evidencePreviewModal .evidence-modal-close { position:absolute; top:9px; right:10px; width:32px; height:32px; border:0; border-radius:50%; background:#f1f5f9; color:#0f172a; font-size:20px; cursor:pointer; }
     #adminDashboard .small { line-height:1.55; }
     #dashboardMsg { padding:8px 10px; border-radius:10px; background:#f1f5f9; }
     @media (min-width:700px) {
@@ -418,6 +427,13 @@
     </div>
   </div>
 
+<div id="evidencePreviewModal" role="dialog" aria-modal="true" aria-label="Preview Evidence" onclick="tutupEvidence(event)">
+  <div class="evidence-modal-card" onclick="event.stopPropagation()">
+    <button type="button" class="evidence-modal-close" aria-label="Tutup" onclick="tutupEvidence()">×</button>
+    <div id="evidencePreviewTitle" class="evidence-modal-title">Evidence Image</div>
+    <img id="evidencePreviewImage" class="evidence-modal-image" alt="Evidence absensi">
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   /********* LOGIN USER SIMPLE *********/
@@ -1163,15 +1179,15 @@ function kirimAbsensi(mode) {
       const dailyRows = roster.slice().sort((a,b)=>a.nama.localeCompare(b.nama)).map(u => {
         const identity = keyForIdentity(u.nik,u.nama);
         const ownRows = byIdentity[identity] || [];
-        const statuses = dateList.map(date => {
+        const details = dateList.map(date => {
           const sameDay = ownRows.filter(r => String(r.date||"").slice(0,10) === date);
-          if (!sameDay.length) return "—";
           const foundStatus = sameDay.map(r => String(r.ket||"").toLowerCase().trim()).find(k => statusMap[k]);
-          if (foundStatus) return statusMap[foundStatus];
-          if (sameDay.some(r => r.jamMasuk)) return "MASUK";
-          return "—";
+          const status = foundStatus ? statusMap[foundStatus] : (sameDay.some(r => r.jamMasuk) ? "MASUK" : "—");
+          const latest = sameDay[sameDay.length - 1] || {};
+          return { status, jamMasuk:latest.jamMasuk||"", jamPulang:latest.jamPulang||"", fotoMasuk:latest.fotoMasuk||"", fotoPulang:latest.fotoPulang||"" };
         });
-        return { nama:u.nama, nik:u.nik, divisi:u.divisi, area:u.defaultArea, statuses };
+        const statuses = details.map(d => d.status); // tetap dipertahankan untuk ekspor lama
+        return { nama:u.nama, nik:u.nik, divisi:u.divisi, area:u.defaultArea, statuses, details };
       });
       dashboardDailyTerakhir = { headers: dateList, rows: dailyRows };
       const formatDateHeader = date => { const parts=date.split("-"); return parts[2]+"/"+parts[1]+"/"+parts[0]; };
@@ -1179,7 +1195,15 @@ function kirimAbsensi(mode) {
       if (!dailyRows.length) dailyHtml += '<tr><td colspan="'+(4+dateList.length)+'">Tidak ada teknisi untuk filter ini.</td></tr>';
       dailyRows.forEach(r => {
         dailyHtml += '<tr><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td>';
-        r.statuses.forEach(st => { const cls = st==='MASUK'?'masuk':st==='LIBUR'?'libur':st==='IZIN'?'izin':st==='SAKIT'?'sakit':st==='CUTI'?'cuti':'kosong'; dailyHtml += '<td><span class="daily-status '+cls+'">'+st+'</span></td>'; });
+        r.details.forEach(d => {
+          const st=d.status; const cls = st==='MASUK'?'masuk':st==='LIBUR'?'libur':st==='IZIN'?'izin':st==='SAKIT'?'sakit':st==='CUTI'?'cuti':'kosong';
+          let cell='<span class="daily-status '+cls+'">'+st+'</span>';
+          if (d.jamMasuk) cell+='<div class="small">M: '+escapeHtml(String(d.jamMasuk).slice(0,5))+'</div>';
+          if (d.fotoMasuk) cell+='<div class="daily-evidence-line"><img class="evidence-thumb" loading="lazy" src="'+escapeHtml(urlThumbnailEvidence(d.fotoMasuk))+'" data-evidence-url="'+escapeHtml(urlPreviewEvidence(d.fotoMasuk))+'" data-evidence-title="Foto Masuk - '+escapeHtml(r.nama)+'" alt="Foto masuk" onclick="bukaEvidence(this)"></div>';
+          if (d.jamPulang) cell+='<div class="small">P: '+escapeHtml(String(d.jamPulang).slice(0,5))+'</div>';
+          if (d.fotoPulang) cell+='<div class="daily-evidence-line"><img class="evidence-thumb" loading="lazy" src="'+escapeHtml(urlThumbnailEvidence(d.fotoPulang))+'" data-evidence-url="'+escapeHtml(urlPreviewEvidence(d.fotoPulang))+'" data-evidence-title="Foto Pulang - '+escapeHtml(r.nama)+'" alt="Foto pulang" onclick="bukaEvidence(this)"></div>';
+          dailyHtml += '<td style="text-align:center;min-width:66px">'+cell+'</td>';
+        });
         dailyHtml += '</tr>';
       });
       dailyHtml += '</tbody></table>';
@@ -1189,6 +1213,34 @@ function kirimAbsensi(mode) {
     .catch(err => { document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message; });
   }
 
+
+  // ===== Preview Evidence foto (tambahan khusus Dashboard Admin) =====
+  function ambilIdDrive(url) {
+    const value = String(url || "");
+    const match = value.match(/(?:\/d\/|[?&]id=)([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : "";
+  }
+  function urlThumbnailEvidence(url) {
+    const id = ambilIdDrive(url);
+    return id ? "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w160" : String(url || "");
+  }
+  function urlPreviewEvidence(url) {
+    const id = ambilIdDrive(url);
+    return id ? "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w1200" : String(url || "");
+  }
+  function bukaEvidence(element) {
+    const url = element && element.dataset ? element.dataset.evidenceUrl : "";
+    if (!url) return;
+    document.getElementById("evidencePreviewImage").src = url;
+    document.getElementById("evidencePreviewTitle").textContent = element.dataset.evidenceTitle || "Evidence Image";
+    document.getElementById("evidencePreviewModal").classList.add("open");
+  }
+  function tutupEvidence(event) {
+    if (event && event.target && event.target.id !== "evidencePreviewModal") return;
+    document.getElementById("evidencePreviewModal").classList.remove("open");
+    document.getElementById("evidencePreviewImage").src = "";
+  }
+  document.addEventListener("keydown", function(event) { if (event.key === "Escape") tutupEvidence(); });
 
   // Unduh tabel sebagai PNG; hanya menambahkan fitur ekspor, tidak mengubah isi rekap.
   function downloadTableAsPNG(wrapId, filename) {
@@ -1313,6 +1365,8 @@ function kirimAbsensi(mode) {
   window.downloadRekapTeknisiPNG = downloadRekapTeknisiPNG;
   window.downloadRekapHarianPNG = downloadRekapHarianPNG;
   window.downloadRekapExcel = downloadRekapExcel;
+  window.bukaEvidence = bukaEvidence;
+  window.tutupEvidence = tutupEvidence;
   window.downloadRekapHarianPNG = downloadRekapHarianPNG;
 </script>
 </body>
