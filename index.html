@@ -892,9 +892,16 @@ function kirimAbsensi(mode) {
       })
     })
     .then(() => {
+      const pesanStatus = {
+        masuk: "Absen Sudah Masuk. Selamat bekerja, pastikan K3. Jangan lupa MBG.",
+        libur: "Status LIBUR berhasil dicatat. Selamat beristirahat dan tetap jaga kesehatan.",
+        cuti: "Status CUTI berhasil dicatat. Selamat menikmati waktu cuti.",
+        sakit: "Status SAKIT berhasil dicatat. Semoga lekas sembuh dan jaga kesehatan.",
+        izin: "Status IZIN berhasil dicatat. Semoga urusannya berjalan lancar."
+      };
       const pesanSukses = mode === "pulang"
         ? "Selamat istirahat terimakasih atas Kerja hari ini salam kepada keluarga"
-        : "Absen Sudah Masuk selamat bekerja pastikan K3 Jangan Lupa MBG";
+        : (pesanStatus[ket] || pesanStatus.masuk);
       statusMsg.textContent = pesanSukses;
       alert(pesanSukses);
       // Lepaskan kunci setelah permintaan selesai agar tombol Absen Pulang
