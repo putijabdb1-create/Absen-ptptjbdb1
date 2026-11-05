@@ -216,12 +216,20 @@
     #adminDashboard .admin-table th, #adminDashboard .admin-table td { padding:9px 8px; }
     #adminDashboard .admin-table tbody tr:nth-child(even) { background:#f8fafc; }
     #adminDashboard .admin-table tbody tr:hover { background:#ecfeff; }
-    #adminDashboard .daily-table { width:max-content; min-width:100%; border-collapse:collapse; font-size:10px; }
+    #adminDashboard .daily-table { width:max-content; min-width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
+    #adminDashboard .daily-table th:nth-child(1), #adminDashboard .daily-table td:nth-child(1) { min-width:150px; width:150px; }
+    #adminDashboard .daily-table th:nth-child(2), #adminDashboard .daily-table td:nth-child(2) { min-width:82px; width:82px; }
+    #adminDashboard .daily-table th:nth-child(3), #adminDashboard .daily-table td:nth-child(3) { min-width:135px; width:135px; }
+    #adminDashboard .daily-table th:nth-child(4), #adminDashboard .daily-table td:nth-child(4) { min-width:115px; width:115px; }
+    #adminDashboard .daily-table th:nth-child(5), #adminDashboard .daily-table td:nth-child(5) { min-width:82px; width:82px; }
+    #adminDashboard .daily-table td { white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
+    #adminDashboard .daily-table td:nth-child(n+6) { min-width:92px; width:92px; }
+    #adminDashboard .daily-table .daily-total-cell { font-weight:800; background:#f1f5f9; }
     #adminDashboard .daily-table th { position:sticky; top:0; background:#e0f2fe; color:#0c4a6e; text-transform:uppercase; text-align:center; }
     #adminDashboard .daily-table th, #adminDashboard .daily-table td { padding:4px 5px; border-bottom:1px solid #e2e8f0; white-space:nowrap; text-align:center; }
     #adminDashboard .daily-table tbody tr:nth-child(even) { background:#f8fafc; }
     #adminDashboard .daily-table .daily-date-head { background:#dbeafe; color:#075985; }
-    #adminDashboard .daily-table .daily-subhead { min-width:48px; font-size:9px; padding:4px 3px; }
+    #adminDashboard .daily-table .daily-subhead { min-width:82px; font-size:9px; padding:5px 4px; white-space:normal; }
     #adminDashboard .daily-table .daily-status { display:block; margin:0 auto 3px; width:max-content; padding:3px 5px; border-radius:5px; font-weight:700; font-size:8px; }
     #adminDashboard .daily-table .daily-photo-link { display:inline-block; color:#075985; font-size:9px; font-weight:700; text-decoration:underline; cursor:pointer; margin:1px 0; }
     #adminDashboard .daily-table .daily-time { display:block; color:#334155; font-size:9px; font-variant-numeric:tabular-nums; }
@@ -1255,7 +1263,8 @@ function kirimAbsensi(mode) {
       let table = '<table class="admin-table"><thead><tr><th>Nama Teknisi</th><th>NIK</th><th>Loker</th><th>Wilayah</th><th>Masuk</th><th>Libur</th><th>Izin</th><th>Sakit</th><th>Cuti</th><th>Total Lembur (Jam)</th><th>Belum Absen Pulang</th><th>Tgl Ada Catatan</th><th>Tgl Tanpa Catatan*</th></tr></thead><tbody>';
       if (!dashboardStatsTerakhir.length) table += '<tr><td colspan="13">Tidak ada teknisi untuk filter ini.</td></tr>';
       dashboardStatsTerakhir.forEach(s => { table += '<tr><td>'+escapeHtml(s.user.nama)+'</td><td>'+escapeHtml(s.user.nik)+'</td><td>'+escapeHtml(s.user.divisi)+'</td><td>'+escapeHtml(s.user.defaultArea)+'</td><td>'+s.masuk+'</td><td>'+s.libur+'</td><td>'+s.izin+'</td><td>'+s.sakit+'</td><td>'+s.cuti+'</td><td>'+s.totalLembur+'</td><td>'+s.belumPulang+'</td><td>'+s.totalHari+'</td><td>'+s.tanpaCatatan+'</td></tr>'; });
-      table += '</tbody></table><p class="small">*Tanggal tanpa catatan dihitung dalam rentang periode sampai hari ini. Angka ini belum berarti mangkir; jadwal kerja perlu diterapkan terlebih dahulu.</p>';
+      const totalSemuaLembur = dashboardStatsTerakhir.reduce((sum,x)=>sum+(Number(x.totalLembur)||0),0);
+      table += '<tr style="font-weight:800;background:#e0f2fe"><td colspan="9">TOTAL SELURUH TEKNISI</td><td>'+totalSemuaLembur+'</td><td colspan="3">JAM LEMBUR</td></tr></tbody></table><p class="small">*Tanggal tanpa catatan dihitung dalam rentang periode sampai hari ini. Angka ini belum berarti mangkir; jadwal kerja perlu diterapkan terlebih dahulu.</p>';
       document.getElementById("dashboardTableWrap").innerHTML = table;
       // Tambahan: rekap per tanggal. Tidak mengubah perhitungan rekap utama.
       const dateList = [];
@@ -1283,14 +1292,15 @@ function kirimAbsensi(mode) {
           return { status, detailStatus, jamMasuk, jamPulang, lembur, catatan:latest.catatan||"", fotoMasuk:latest.fotoMasuk||"", fotoPulang:latest.fotoPulang||"" };
         });
         const statuses = details.map(d => d.status); // tetap dipertahankan untuk ekspor lama
-        return { nama:u.nama, nik:u.nik, divisi:u.divisi, area:u.defaultArea, statuses, details };
+        const totalLembur = details.reduce((sum,d)=>sum+(Number(d.lembur)||0),0);
+        return { nama:u.nama, nik:u.nik, divisi:u.divisi, area:u.defaultArea, statuses, details, totalLembur };
       });
       dashboardDailyTerakhir = { headers: dateList, rows: dailyRows };
       const formatDateHeader = date => { const parts=date.split("-"); return parts[2]+"/"+parts[1]+"/"+parts[0]; };
       // Tampilan per tanggal: header tanggal, subkolom MASUK/PULANG,
       // baris Photo, lalu jam. Hanya mengubah presentasi rekap harian.
-      let dailyHtml = '<table class="daily-table"><thead><tr><th rowspan="2">Nama Teknisi</th><th rowspan="2">NIK</th><th rowspan="2">Divisi</th><th rowspan="2">Area</th>' + dateList.map(d=>'<th class="daily-date-head" colspan="3">'+formatDateHeader(d)+'</th>').join('') + '</tr><tr>' + dateList.map(()=>'<th class="daily-subhead">MASUK</th><th class="daily-subhead">PULANG</th><th class="daily-subhead">LEMBUR</th>').join('') + '</tr></thead><tbody>';
-      if (!dailyRows.length) dailyHtml += '<tr><td colspan="'+(4+dateList.length*3)+'">Tidak ada teknisi untuk filter ini.</td></tr>';
+      let dailyHtml = '<table class="daily-table"><thead><tr><th rowspan="2">Nama Teknisi</th><th rowspan="2">NIK</th><th rowspan="2">Divisi</th><th rowspan="2">Area</th><th rowspan="2">Total Lembur</th>' + dateList.map(d=>'<th class="daily-date-head" colspan="3">'+formatDateHeader(d)+'</th>').join('') + '</tr><tr>' + dateList.map(()=>'<th class="daily-subhead">MASUK</th><th class="daily-subhead">PULANG</th><th class="daily-subhead">LEMBUR</th>').join('') + '</tr></thead><tbody>';
+      if (!dailyRows.length) dailyHtml += '<tr><td colspan="'+(5+dateList.length*3)+'">Tidak ada teknisi untuk filter ini.</td></tr>';
       const makeEvidence = (url, title) => url ? '<a href="javascript:void(0)" class="daily-photo-link" data-evidence-url="'+escapeHtml(urlPreviewEvidence(url))+'" data-evidence-title="'+escapeHtml(title)+'" onclick="bukaEvidence(this)">Photo</a>' : '<span class="small">—</span>';
       const makeAttendanceCell = (status, time, photo, title) => {
         const st = status || '—';
@@ -1298,7 +1308,7 @@ function kirimAbsensi(mode) {
         return '<td><span class="daily-status '+cls+'">'+st+'</span>'+makeEvidence(photo,title)+'<span class="daily-time">'+(time?escapeHtml(String(time)):'—')+'</span></td>';
       };
       dailyRows.forEach(r => {
-        dailyHtml += '<tr><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td>';
+        dailyHtml += '<tr><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td><td class="daily-total-cell"><strong>'+r.totalLembur+' jam</strong></td>';
         r.details.forEach(d => {
           const statusIn = d.status === 'MASUK' ? 'MASUK' : (['LIBUR','IZIN','SAKIT','CUTI'].includes(d.status) ? d.status : (d.jamMasuk ? 'MASUK' : '—'));
           const statusOut = d.jamPulang ? 'PULANG' : '—';
@@ -1306,6 +1316,8 @@ function kirimAbsensi(mode) {
         });
         dailyHtml += '</tr>';
       });
+      const grandTotalLembur = dailyRows.reduce((sum,r)=>sum+r.totalLembur,0);
+      dailyHtml += '<tr class="daily-grand-total"><td colspan="4"><strong>TOTAL SELURUH TEKNISI</strong></td><td class="daily-total-cell"><strong>'+grandTotalLembur+' jam</strong></td>' + dateList.map((date,idx)=>'<td colspan="3" class="daily-total-cell"><strong>'+dailyRows.reduce((sum,r)=>sum+(Number(r.details[idx]?.lembur)||0),0)+' jam</strong></td>').join('') + '</tr>';
       dailyHtml += '</tbody></table>';
       document.getElementById("dashboardDailyTableWrap").innerHTML = dailyHtml;
       document.getElementById("dashboardMsg").textContent = "Rekap selesai: "+from+" s.d. "+to+" • "+roster.length+" teknisi • "+records.length+" baris absensi.";
@@ -1352,14 +1364,26 @@ function kirimAbsensi(mode) {
     const exportClone = table.cloneNode(true);
     exportClone.style.width = "max-content";
     exportClone.style.minWidth = "100%";
-    exportClone.style.fontSize = "12px";
+    exportClone.style.tableLayout = "fixed";
+    exportClone.style.borderCollapse = "collapse";
+    exportClone.style.fontSize = "11px";
+    exportClone.style.whiteSpace = "normal";
+    exportClone.querySelectorAll("td, th").forEach(cell => {
+      cell.style.boxSizing = "border-box";
+      cell.style.padding = "7px 8px";
+      cell.style.border = "1px solid #cbd5e1";
+      cell.style.whiteSpace = "normal";
+      cell.style.overflowWrap = "anywhere";
+      cell.style.verticalAlign = "middle";
+      cell.style.lineHeight = "1.35";
+    });
     exportClone.querySelectorAll("th").forEach(th => {
       th.style.position = "static";
       th.style.background = "#e0f2fe";
       th.style.color = "#0c4a6e";
     });
     const container = document.createElement("div");
-    container.style.cssText = "position:fixed;left:-100000px;top:0;background:#fff;padding:18px;width:max-content;max-width:none;z-index:-1";
+    container.style.cssText = "position:fixed;left:-100000px;top:0;background:#fff;padding:22px;width:max-content;max-width:none;z-index:-1;overflow:visible";
     const heading = document.createElement("h3");
     heading.textContent = filename.replace(/_/g," ");
     heading.style.cssText = "font:600 16px Arial,sans-serif;color:#0f172a;margin:0 0 12px";
@@ -1400,7 +1424,7 @@ function kirimAbsensi(mode) {
       return;
     }
     const areaLabel = document.getElementById("dashboardArea").value || "PILIH SEMUA AREA";
-    const workbookHtml = '<html><head><meta charset="UTF-8"></head><body>' +
+    const workbookHtml = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:10pt}table{border-collapse:collapse;table-layout:auto;margin:8px 0 18px}th,td{border:1px solid #94a3b8;padding:6px 8px;text-align:center;vertical-align:middle;white-space:normal;mso-wrap-text:yes}th{background:#dbeafe;color:#075985;font-weight:bold}td{mso-number-format:"\\@"}.daily-table{width:auto}.daily-table td{min-width:75px;max-width:150px;overflow-wrap:anywhere}.daily-table td:first-child{min-width:140px}</style></head><body>' +
       '<h2>Rekap Per Teknisi</h2><p>Periode: ' + escapeHtml(dashboardPeriodeTerakhir.from) + ' s.d. ' + escapeHtml(dashboardPeriodeTerakhir.to) + ' | Area: ' + escapeHtml(areaLabel) + '</p>' +
       techTable.outerHTML + '<br><br><h2>Rekap Absen Per Tanggal</h2>' + dailyTable.outerHTML +
       '</body></html>';
