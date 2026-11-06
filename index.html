@@ -841,6 +841,21 @@ function kirimAbsensi(mode) {
     return;
   }
 
+  // ================= VALIDASI WAKTU PULANG =================
+  // Batas ini juga tetap diperiksa ulang oleh Google Apps Script.
+  if (mode === "pulang") {
+    const jamWIB = new Date().toLocaleTimeString("en-GB", {
+      timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hour12: false
+    });
+    const bagianJamWIB = jamWIB.split(":").map(Number);
+    const menitSekarang = bagianJamWIB[0] * 60 + bagianJamWIB[1];
+    if (menitSekarang < 17 * 60) {
+      alert("Absen pulang hanya dapat dilakukan mulai pukul 17.00 WIB.");
+      statusMsg.textContent = "Belum waktunya absen pulang. Silakan absen setelah pukul 17.00 WIB.";
+      return;
+    }
+  }
+
   // ================= FOTO WAJIB UNTUK MASUK & PULANG =================
   let fotoBase64 = "";
   if (!canvas.width || !canvas.height || preview.dataset.ready !== "1") {
@@ -875,12 +890,10 @@ function kirimAbsensi(mode) {
   }
 
   function kirimFetch() {
-    // Apps Script menyimpan data, tetapi browser GitHub Pages di HP dapat
-    // memblokir pembacaan respons lintas-domain (CORS). no-cors menghindari
-    // status "mengirim" selamanya; hasil tetap harus diverifikasi di Sheet.
+    // Gunakan CORS agar jawaban OK / ERROR dari Apps Script dapat dibaca.
+    // Jangan tampilkan notifikasi sukses hanya karena request selesai dikirim.
     fetch(FETCH_URL_WEB_APP, {
       method: "POST",
-      mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         mode  : mode,
@@ -895,7 +908,19 @@ function kirimAbsensi(mode) {
         lon   : mode === "pulang" ? lonPulang : lon
       })
     })
-    .then(() => {
+    .then(res => {
+      if (!res.ok) throw new Error("Server absensi tidak merespons dengan baik (" + res.status + ").");
+      return res.text();
+    })
+    .then(hasil => {
+      const jawaban = String(hasil || "").trim();
+      if (jawaban.indexOf("ERROR:") === 0) {
+        throw new Error(jawaban.replace(/^ERROR:\s*/, ""));
+      }
+      const suksesYangDiharapkan = mode === "pulang" ? "OK PULANG" : "OK MASUK";
+      if (jawaban !== suksesYangDiharapkan) {
+        throw new Error("Jawaban server tidak dikenali: " + (jawaban || "kosong"));
+      }
       const pesanStatus = {
         masuk: "Absen Sudah Masuk. Selamat bekerja, pastikan K3. Jangan lupa MBG.",
         libur: "Status LIBUR berhasil dicatat. Selamat beristirahat dan tetap jaga kesehatan.",
@@ -917,10 +942,12 @@ function kirimAbsensi(mode) {
       lepasKunciTombol();
     })
     .catch(err => {
-      statusMsg.textContent = "Pengiriman belum dapat dipastikan. Periksa Google Sheets sebelum mencoba lagi.";
-      alert("Pengiriman belum dapat dipastikan. Periksa Google Sheets terlebih dahulu agar tidak terjadi data ganda.");
-      absensiSedangDikirim = false;
-      tombolAbsen.forEach(btn => { btn.disabled = false; });
+      const pesanGagal = err && err.message ? err.message : "Pengiriman belum dapat dipastikan.";
+      statusMsg.textContent = "Absensi belum berhasil: " + pesanGagal;
+      alert("Absensi belum berhasil: " + pesanGagal);
+      // Foto tetap tersedia agar teknisi dapat mencoba kembali setelah
+      // memperbaiki penyebab penolakan; server tetap mencegah data ganda.
+      lepasKunciTombol();
     });
   }
 }
@@ -1300,16 +1327,20 @@ function kirimAbsensi(mode) {
       dailyHtml += '</tbody></table>';
       document.getElementById("dashboardDailyTableWrap").innerHTML = dailyHtml;
 
-      // Rekap lembur memakai filter roster/periode/area yang sama dengan dashboard.
+      // Rekap lembur ringkas per teknisi, memakai filter periode/loker/area dashboard.
       const timeToMinutes = value => {
-        const m = String(value || "").match(/^(\\d{1,2}):(\\d{2})/);
+        const m = String(value || "").match(/^(\d{1,2}):(\d{2})/);
         return m ? (Number(m[1]) * 60 + Number(m[2])) : null;
       };
       const lemburRows = [];
       let totalJamLembur = 0;
+      let totalBelumPulang = 0;
       roster.slice().sort((a,b)=>a.nama.localeCompare(b.nama)).forEach(u => {
         const identity = keyForIdentity(u.nik,u.nama);
         const ownRows = byIdentity[identity] || [];
+        const ringkas = { nama:u.nama, nik:u.nik, divisi:u.divisi, area:u.defaultArea,
+          masuk:0, libur:0, izin:0, sakit:0, cuti:0, jamLembur:0,
+          belumPulang:0, tglAdaCatatan:0, tglTanpaCatatan:0, detail:[] };
         dateList.forEach(date => {
           const sameDay = ownRows.filter(r => String(r.date||"").slice(0,10) === date);
           const record = sameDay[sameDay.length - 1] || null;
@@ -1319,9 +1350,9 @@ function kirimAbsensi(mode) {
           let status = "TIDAK ADA ABSENSI";
           let jamLembur = 0;
           if (record && jamMasuk) {
-            if (!jamPulang) {
-              status = "BELUM ABSEN PULANG";
-            } else {
+            ringkas.masuk++;
+            if (!jamPulang) { status = "BELUM ABSEN PULANG"; ringkas.belumPulang++; }
+            else {
               status = "SELESAI";
               const menitPulang = timeToMinutes(jamPulang);
               if (menitPulang !== null && menitPulang > 17*60) {
@@ -1329,31 +1360,43 @@ function kirimAbsensi(mode) {
               }
             }
           } else if (record && ["libur","cuti","sakit","izin","ijin"].includes(ket)) {
-            status = ket.toUpperCase() === "IJIN" ? "IZIN" : ket.toUpperCase();
+            status = ket === "ijin" ? "IZIN" : ket.toUpperCase();
+            ringkas[ket === "ijin" ? "izin" : ket]++;
           }
-          totalJamLembur += jamLembur;
-          lemburRows.push({
-            tanggal: date, nama: u.nama, nik: u.nik, divisi: u.divisi,
-            area: u.defaultArea, jamMasuk, jamPulang, jamLembur, status,
-            fotoMasuk: record ? (record.fotoMasuk||"") : "",
-            fotoPulang: record ? (record.fotoPulang||"") : "",
-            keterangan: record ? (record.note||"") : ""
-          });
+          if (record) ringkas.tglAdaCatatan++;
+          else ringkas.tglTanpaCatatan++;
+          ringkas.jamLembur += jamLembur;
+          ringkas.detail.push({ tanggal:date, status, jamMasuk, jamPulang, jamLembur,
+            catatan:record ? (record.note||"") : "" });
         });
+        totalJamLembur += ringkas.jamLembur;
+        totalBelumPulang += ringkas.belumPulang;
+        lemburRows.push(ringkas);
       });
-      dashboardLemburTerakhir = { rows: lemburRows, totalJam: totalJamLembur, totalTeknisi: roster.length };
+      dashboardLemburTerakhir = { rows:lemburRows, totalJam:totalJamLembur,
+        totalTeknisi:roster.length, totalBelumPulang:totalBelumPulang };
       document.getElementById("lemburSummary").textContent =
-        "Total lembur: " + totalJamLembur + " jam • " + lemburRows.filter(r=>r.jamLembur>0).length +
-        " catatan lembur • " + from + " s.d. " + to;
-      let lemburHtml = '<table class="admin-table"><thead><tr><th>Tanggal</th><th>Nama Teknisi</th><th>NIK</th><th>Loker</th><th>Area</th><th>Jam Masuk</th><th>Jam Pulang</th><th>Lembur</th><th>Status</th><th>Foto Masuk</th><th>Foto Pulang</th><th>Keterangan</th></tr></thead><tbody>';
-      if (!lemburRows.length) lemburHtml += '<tr><td colspan="12">Tidak ada data pada filter ini.</td></tr>';
-      lemburRows.forEach(r => {
-        const fotoLink = (url,title) => url
-          ? '<a href="javascript:void(0)" class="daily-photo-link" data-evidence-url="'+escapeHtml(urlPreviewEvidence(url))+'" data-evidence-title="'+escapeHtml(title)+'" onclick="bukaEvidence(this)">Lihat Foto</a>'
-          : '—';
-        lemburHtml += '<tr><td>'+escapeHtml(r.tanggal)+'</td><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td><td>'+escapeHtml(r.jamMasuk||"—")+'</td><td>'+escapeHtml(r.jamPulang||"—")+'</td><td><strong>'+r.jamLembur+' jam</strong></td><td>'+escapeHtml(r.status)+'</td><td>'+fotoLink(r.fotoMasuk,"Foto Masuk - "+r.nama)+'</td><td>'+fotoLink(r.fotoPulang,"Foto Pulang - "+r.nama)+'</td><td>'+escapeHtml(r.keterangan||"—")+'</td></tr>';
+        "Total lembur " + totalJamLembur + " jam  •  " + roster.length + " teknisi  •  " +
+        totalBelumPulang + " belum absen pulang  •  Periode " + from + " s.d. " + to;
+      let lemburHtml = '<table class="admin-table"><thead><tr>' +
+        '<th>Nama Teknisi</th><th>NIK</th><th>Loker</th><th>Wilayah</th>' +
+        '<th>Masuk</th><th>Libur</th><th>Izin</th><th>Sakit</th><th>Cuti</th>' +
+        '<th>Total Lembur (Jam)</th><th>Belum Absen Pulang</th><th>Tgl Ada Catatan</th><th>Tgl Tanpa Catatan*</th></tr></thead><tbody>';
+      if (!lemburRows.length) lemburHtml += '<tr><td colspan="13">Tidak ada data pada filter ini.</td></tr>';
+      lemburRows.forEach((r,idx) => {
+        const detailJson = escapeHtml(JSON.stringify(r.detail));
+        lemburHtml += '<tr><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td>'+
+          '<td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td>'+
+          '<td>'+r.masuk+'</td><td>'+r.libur+'</td><td>'+r.izin+'</td><td>'+r.sakit+'</td><td>'+r.cuti+'</td>'+
+          '<td><strong>'+r.jamLembur+'</strong></td><td>'+r.belumPulang+'</td>'+
+          '<td>'+r.tglAdaCatatan+'</td><td>'+r.tglTanpaCatatan+'</td></tr>';
       });
-      lemburHtml += '</tbody></table>';
+      const jumlah = key => lemburRows.reduce((sum,r)=>sum+r[key],0);
+      lemburHtml += '<tr class="total-row"><th colspan="4">TOTAL SELURUH TEKNISI</th>'+
+        '<th>'+jumlah("masuk")+'</th><th>'+jumlah("libur")+'</th><th>'+jumlah("izin")+'</th>'+
+        '<th>'+jumlah("sakit")+'</th><th>'+jumlah("cuti")+'</th><th>'+totalJamLembur+'</th>'+
+        '<th>'+totalBelumPulang+'</th><th>'+jumlah("tglAdaCatatan")+'</th><th>'+jumlah("tglTanpaCatatan")+'</th></tr>';
+      lemburHtml += '</tbody></table><p class="small">*Tanggal tanpa catatan adalah tanggal dalam periode yang tidak memiliki catatan absensi/status untuk teknisi tersebut.</p>';
       document.getElementById("dashboardLemburTableWrap").innerHTML = lemburHtml;
       document.getElementById("dashboardMsg").textContent = "Rekap selesai: "+from+" s.d. "+to+" • "+roster.length+" teknisi • "+records.length+" baris absensi.";
     })
