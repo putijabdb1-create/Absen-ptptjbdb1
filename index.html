@@ -352,6 +352,18 @@
           <div class="table-toolbar"><span class="small">Status harian sesuai periode dan filter yang dipilih.</span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapHarianPNG()">↓ PNG</button><button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadRekapExcel()">↓ Excel Gabungan</button></div></div>
           <div id="dashboardDailyTableWrap" class="table-scroll"></div>
         </div>
+        <div class="dash-panel">
+          <div class="panel-title"><span class="panel-icon">⏱️</span> Rekap Absen Lembur</div>
+          <p class="small">Mengikuti periode, loker/divisi, dan area pada Filter Rekap Absensi di atas. Lembur dihitung mulai pukul 17:00 dan dibulatkan ke bawah per jam penuh. Teknisi yang belum absen pulang tercatat 0 jam.</p>
+          <div class="table-toolbar">
+            <span class="small" id="lemburSummary">Tampilkan rekap absensi terlebih dahulu.</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadLemburPNG()">↓ PNG</button>
+              <button type="button" class="btn btn-download" style="width:auto;margin:0;padding:9px 12px;font-size:11px" onclick="downloadLemburExcel()">↓ Excel</button>
+            </div>
+          </div>
+          <div id="dashboardLemburTableWrap" class="table-scroll"></div>
+        </div>
       </section>
 
       <!-- FORM ABSENSI -->
@@ -829,21 +841,13 @@ function kirimAbsensi(mode) {
     return;
   }
 
-  // ================= FOTO =================
+  // ================= FOTO WAJIB UNTUK MASUK & PULANG =================
   let fotoBase64 = "";
-
-  // 🔒 KHUSUS PULANG: WAJIB FOTO BARU
-  if (mode === "pulang") {
-    if (preview.dataset.ready !== "1") {
-      alert("❌ Absen pulang WAJIB Pake Photo Baru atuh.");
-      return;
-    }
-  } else {
-    // masuk: boleh tanpa foto
-    if (!canvas.width || !canvas.height) {
-      const lanjut = confirm("Photo heula Kasep Wajib. Lanjut Absen teu ngangge Photo?");
-      if (!lanjut) return;
-    }
+  if (!canvas.width || !canvas.height || preview.dataset.ready !== "1") {
+    alert(mode === "pulang"
+      ? "Absen pulang wajib mengambil foto baru terlebih dahulu."
+      : "Absen masuk wajib mengambil foto terlebih dahulu.");
+    return;
   }
 
   if (canvas.width && canvas.height) {
@@ -1131,6 +1135,7 @@ function kirimAbsensi(mode) {
   let dashboardStatsTerakhir = [];
   let dashboardPeriodeTerakhir = {from:"", to:""};
   let dashboardDailyTerakhir = { headers: [], rows: [] };
+  let dashboardLemburTerakhir = { rows: [], totalJam: 0, totalTeknisi: 0 };
 
   function siapkanFilterDashboard() {
     const fromInput = document.getElementById("dashboardFrom");
@@ -1294,6 +1299,62 @@ function kirimAbsensi(mode) {
       });
       dailyHtml += '</tbody></table>';
       document.getElementById("dashboardDailyTableWrap").innerHTML = dailyHtml;
+
+      // Rekap lembur memakai filter roster/periode/area yang sama dengan dashboard.
+      const timeToMinutes = value => {
+        const m = String(value || "").match(/^(\\d{1,2}):(\\d{2})/);
+        return m ? (Number(m[1]) * 60 + Number(m[2])) : null;
+      };
+      const lemburRows = [];
+      let totalJamLembur = 0;
+      roster.slice().sort((a,b)=>a.nama.localeCompare(b.nama)).forEach(u => {
+        const identity = keyForIdentity(u.nik,u.nama);
+        const ownRows = byIdentity[identity] || [];
+        dateList.forEach(date => {
+          const sameDay = ownRows.filter(r => String(r.date||"").slice(0,10) === date);
+          const record = sameDay[sameDay.length - 1] || null;
+          const ket = record ? String(record.ket||"").toLowerCase().trim() : "";
+          const jamMasuk = record ? String(record.jamMasuk||"") : "";
+          const jamPulang = record ? String(record.jamPulang||"") : "";
+          let status = "TIDAK ADA ABSENSI";
+          let jamLembur = 0;
+          if (record && jamMasuk) {
+            if (!jamPulang) {
+              status = "BELUM ABSEN PULANG";
+            } else {
+              status = "SELESAI";
+              const menitPulang = timeToMinutes(jamPulang);
+              if (menitPulang !== null && menitPulang > 17*60) {
+                jamLembur = Math.floor((menitPulang - 17*60) / 60);
+              }
+            }
+          } else if (record && ["libur","cuti","sakit","izin","ijin"].includes(ket)) {
+            status = ket.toUpperCase() === "IJIN" ? "IZIN" : ket.toUpperCase();
+          }
+          totalJamLembur += jamLembur;
+          lemburRows.push({
+            tanggal: date, nama: u.nama, nik: u.nik, divisi: u.divisi,
+            area: u.defaultArea, jamMasuk, jamPulang, jamLembur, status,
+            fotoMasuk: record ? (record.fotoMasuk||"") : "",
+            fotoPulang: record ? (record.fotoPulang||"") : "",
+            keterangan: record ? (record.note||"") : ""
+          });
+        });
+      });
+      dashboardLemburTerakhir = { rows: lemburRows, totalJam: totalJamLembur, totalTeknisi: roster.length };
+      document.getElementById("lemburSummary").textContent =
+        "Total lembur: " + totalJamLembur + " jam • " + lemburRows.filter(r=>r.jamLembur>0).length +
+        " catatan lembur • " + from + " s.d. " + to;
+      let lemburHtml = '<table class="admin-table"><thead><tr><th>Tanggal</th><th>Nama Teknisi</th><th>NIK</th><th>Loker</th><th>Area</th><th>Jam Masuk</th><th>Jam Pulang</th><th>Lembur</th><th>Status</th><th>Foto Masuk</th><th>Foto Pulang</th><th>Keterangan</th></tr></thead><tbody>';
+      if (!lemburRows.length) lemburHtml += '<tr><td colspan="12">Tidak ada data pada filter ini.</td></tr>';
+      lemburRows.forEach(r => {
+        const fotoLink = (url,title) => url
+          ? '<a href="javascript:void(0)" class="daily-photo-link" data-evidence-url="'+escapeHtml(urlPreviewEvidence(url))+'" data-evidence-title="'+escapeHtml(title)+'" onclick="bukaEvidence(this)">Lihat Foto</a>'
+          : '—';
+        lemburHtml += '<tr><td>'+escapeHtml(r.tanggal)+'</td><td>'+escapeHtml(r.nama)+'</td><td>'+escapeHtml(r.nik)+'</td><td>'+escapeHtml(r.divisi)+'</td><td>'+escapeHtml(r.area)+'</td><td>'+escapeHtml(r.jamMasuk||"—")+'</td><td>'+escapeHtml(r.jamPulang||"—")+'</td><td><strong>'+r.jamLembur+' jam</strong></td><td>'+escapeHtml(r.status)+'</td><td>'+fotoLink(r.fotoMasuk,"Foto Masuk - "+r.nama)+'</td><td>'+fotoLink(r.fotoPulang,"Foto Pulang - "+r.nama)+'</td><td>'+escapeHtml(r.keterangan||"—")+'</td></tr>';
+      });
+      lemburHtml += '</tbody></table>';
+      document.getElementById("dashboardLemburTableWrap").innerHTML = lemburHtml;
       document.getElementById("dashboardMsg").textContent = "Rekap selesai: "+from+" s.d. "+to+" • "+roster.length+" teknisi • "+records.length+" baris absensi.";
     })
     .catch(err => { document.getElementById("dashboardMsg").textContent = "Dashboard gagal dimuat: " + err.message; });
@@ -1399,6 +1460,31 @@ function kirimAbsensi(mode) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function downloadLemburExcel() {
+    const data = dashboardLemburTerakhir;
+    if (!data || !data.rows || !data.rows.length) {
+      document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download Excel lembur.";
+      return;
+    }
+    const table = document.querySelector("#dashboardLemburTableWrap table");
+    const html = '<html><head><meta charset="UTF-8"></head><body><h2>REKAP ABSEN LEMBUR PT PUTRA TIMUR JAYA</h2>' +
+      '<p>Periode: '+escapeHtml(dashboardPeriodeTerakhir.from)+' s.d. '+escapeHtml(dashboardPeriodeTerakhir.to)+'</p>' +
+      '<p>Total lembur: '+data.totalJam+' jam</p>' + (table ? table.outerHTML : '') + '</body></html>';
+    const blob = new Blob(["\\ufeff",html],{type:"application/vnd.ms-excel;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url;
+    a.download="Rekap_Absen_Lembur_"+dashboardPeriodeTerakhir.from+"_sd_"+dashboardPeriodeTerakhir.to+".xls";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function downloadLemburPNG() {
+    if (!dashboardLemburTerakhir || !dashboardLemburTerakhir.rows || !dashboardLemburTerakhir.rows.length) {
+      document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download PNG lembur.";
+      return;
+    }
+    downloadTableAsPNG("dashboardLemburTableWrap","Rekap_Absen_Lembur_"+dashboardPeriodeTerakhir.from+"_sd_"+dashboardPeriodeTerakhir.to);
+  }
+
   function downloadRekapDashboard() {
     if (!dashboardStatsTerakhir.length) {
       document.getElementById("dashboardMsg").textContent = "Tampilkan rekap terlebih dahulu sebelum download.";
@@ -1446,6 +1532,8 @@ function kirimAbsensi(mode) {
   window.handleAdminLogin = handleAdminLogin;
   window.logoutAdmin = logoutAdmin;
   window.muatDashboard = muatDashboard;
+  window.downloadLemburExcel = downloadLemburExcel;
+  window.downloadLemburPNG = downloadLemburPNG;
   window.simpanStatusAdmin = simpanStatusAdmin;
   window.downloadRekapDashboard = downloadRekapDashboard;
   window.downloadRekapTeknisiPNG = downloadRekapTeknisiPNG;
