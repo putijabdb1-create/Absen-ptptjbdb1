@@ -267,7 +267,17 @@
     #adminDashboard #dashboardTableWrap .admin-table thead th:nth-child(-n+4),
     #adminDashboard #dashboardLemburTableWrap .admin-table thead th:nth-child(-n+4) { z-index:9; background:#e0f2fe; }
     #adminDashboard #dashboardTableWrap .admin-table tbody td:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table tbody td:nth-child(-n+4) { z-index:4; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table tbody td:nth-child(-n+4) {
+      z-index:4;
+      background-color:#fff;
+      background-clip:border-box;
+    }
+    #adminDashboard #dashboardTableWrap .admin-table thead th:nth-child(-n+4),
+    #adminDashboard #dashboardLemburTableWrap .admin-table thead th:nth-child(-n+4) { background-color:#e0f2fe; }
+    #adminDashboard #dashboardTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4),
+    #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4) { background-color:#f8fafc; }
+    #adminDashboard #dashboardTableWrap .admin-table tbody tr:hover td:nth-child(-n+4),
+    #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:hover td:nth-child(-n+4) { background-color:#ecfeff; }
     #adminDashboard #dashboardTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4),
     #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4) { background:#f8fafc; }
     #adminDashboard #dashboardTableWrap .admin-table tbody tr:hover td:nth-child(-n+4),
@@ -279,7 +289,19 @@
     #adminDashboard #dashboardDailyTableWrap .daily-table {
       border-collapse:separate;
       border-spacing:0;
+      table-layout:fixed;
+      width:max-content;
+      min-width:100%;
     }
+    /* Lebar kolom identitas dibuat konsisten agar posisi sticky selalu tepat. */
+    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(1),
+    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(1) { width:150px; min-width:150px; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(2),
+    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(2) { width:92px; min-width:92px; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(3),
+    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(3) { width:145px; min-width:145px; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(4),
+    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(4) { width:150px; min-width:150px; }
     #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(-n+4),
     #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(-n+4) {
       position:sticky;
@@ -299,9 +321,22 @@
     #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(4) { left:387px; width:150px; min-width:150px; max-width:150px; box-shadow:4px 0 7px rgba(15,23,42,.12); }
     #adminDashboard #dashboardDailyTableWrap .daily-table thead th { position:sticky; top:0; z-index:5; }
     #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(-n+4) { z-index:10; background:#e0f2fe; }
-    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(-n+4) { z-index:4; }
-    #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:nth-child(even) td:nth-child(-n+4) { background:#f8fafc; }
-    #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:hover td:nth-child(-n+4) { background:#ecfeff; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(-n+4) {
+      z-index:4;
+      background-color:#fff;
+      background-clip:border-box;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:nth-child(even) td:nth-child(-n+4) { background-color:#f8fafc; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:hover td:nth-child(-n+4) { background-color:#ecfeff; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(-n+4) {
+      background-color:#e0f2fe;
+      background-clip:border-box;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table td:not(:nth-child(-n+4)),
+    #adminDashboard #dashboardDailyTableWrap .daily-table th:not(:nth-child(-n+4)) {
+      position:relative;
+      z-index:1;
+    }
     #adminDashboard .daily-status.masuk { background:#dcfce7; color:#166534; }
     #adminDashboard .daily-status.libur { background:#fee2e2; color:#991b1b; }
     #adminDashboard .daily-status.izin { background:#f3e8ff; color:#6b21a8; }
