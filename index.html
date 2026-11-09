@@ -368,7 +368,45 @@
       #adminDashboard .admin-kpi { padding:11px; }
       #adminDashboard .admin-kpi strong { font-size:23px; }
     }
-  </style>
+  
+
+    /* FIX HEADER VERTIKAL REKAP HARIAN:
+       baris tanggal dan subkolom MASUK/PULANG tetap terlihat saat scroll ke bawah.
+       Empat kolom identitas tetap sticky horizontal seperti sebelumnya. */
+    #adminDashboard #dashboardDailyTableWrap .table-scroll {
+      position: relative;
+      overflow: auto;
+      isolation: isolate;
+      scroll-behavior: smooth;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead {
+      position: static;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #dbeafe;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:nth-child(2) th {
+      position: sticky;
+      top: 25px;
+      z-index: 19;
+      background: #e0f2fe;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th[rowspan="2"] {
+      top: 0;
+      z-index: 30;
+      background: #e0f2fe;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(-n+4) {
+      z-index: 31;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:nth-child(2) th {
+      box-shadow: 0 1px 0 rgba(148,163,184,.35);
+    }
+
+</style>
 </head>
 <body>
   <div class="wrapper">
