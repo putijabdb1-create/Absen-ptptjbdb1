@@ -226,59 +226,82 @@
     #adminDashboard .daily-table .daily-photo-link { display:inline-block; color:#075985; font-size:9px; font-weight:700; text-decoration:underline; cursor:pointer; margin:1px 0; }
     #adminDashboard .daily-table .daily-time { display:block; color:#334155; font-size:9px; font-variant-numeric:tabular-nums; }
 
-    /* FREEZE PANE: identitas teknisi tetap terlihat saat tabel digeser horizontal */
+    /* FREEZE PANE PROFESIONAL: empat kolom identitas tetap stabil */
+    #adminDashboard .table-scroll { position:relative; isolation:isolate; }
+
+    /* Rekap Per Teknisi dan Rekap Lembur */
     #adminDashboard #dashboardTableWrap .admin-table,
-    #adminDashboard #dashboardLemburTableWrap .admin-table,
-    #adminDashboard #dashboardDailyTableWrap .daily-table { border-collapse:separate; border-spacing:0; }
-    #adminDashboard #dashboardTableWrap .admin-table th:nth-child(-n+4),
-    #adminDashboard #dashboardTableWrap .admin-table td:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(-n+4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(-n+4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(-n+4) {
-      position:sticky; background:#fff; background-clip:padding-box;
+    #adminDashboard #dashboardLemburTableWrap .admin-table {
+      border-collapse:separate;
+      border-spacing:0;
     }
     #adminDashboard #dashboardTableWrap .admin-table th:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(-n+4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table thead th:nth-child(-n+4) { z-index:8; }
     #adminDashboard #dashboardTableWrap .admin-table td:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(-n+4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(-n+4) { z-index:4; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(-n+4),
+    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(-n+4) {
+      position:sticky;
+      box-sizing:border-box;
+      background-clip:padding-box;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
     #adminDashboard #dashboardTableWrap .admin-table th:nth-child(1),
     #adminDashboard #dashboardTableWrap .admin-table td:nth-child(1),
     #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(1),
-    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(1),
-    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(1),
-    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(1) { left:0; min-width:140px; width:140px; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(1) { left:0; width:160px; min-width:160px; max-width:160px; }
     #adminDashboard #dashboardTableWrap .admin-table th:nth-child(2),
     #adminDashboard #dashboardTableWrap .admin-table td:nth-child(2),
     #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(2),
-    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(2),
-    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(2),
-    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(2) { left:140px; min-width:90px; width:90px; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(2) { left:160px; width:92px; min-width:92px; max-width:92px; }
     #adminDashboard #dashboardTableWrap .admin-table th:nth-child(3),
     #adminDashboard #dashboardTableWrap .admin-table td:nth-child(3),
     #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(3),
-    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(3),
-    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(3),
-    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(3) { left:230px; min-width:135px; width:135px; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(3) { left:252px; width:145px; min-width:145px; max-width:145px; }
     #adminDashboard #dashboardTableWrap .admin-table th:nth-child(4),
     #adminDashboard #dashboardTableWrap .admin-table td:nth-child(4),
     #adminDashboard #dashboardLemburTableWrap .admin-table th:nth-child(4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table th:nth-child(4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table td:nth-child(4) { left:365px; min-width:150px; width:150px; box-shadow:3px 0 5px rgba(15,23,42,.10); }
+    #adminDashboard #dashboardLemburTableWrap .admin-table td:nth-child(4) { left:397px; width:155px; min-width:155px; max-width:155px; box-shadow:4px 0 7px rgba(15,23,42,.12); }
     #adminDashboard #dashboardTableWrap .admin-table thead th,
-    #adminDashboard #dashboardLemburTableWrap .admin-table thead th { position:sticky; top:0; z-index:5; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table thead th { position:sticky; top:0; z-index:6; }
     #adminDashboard #dashboardTableWrap .admin-table thead th:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table thead th:nth-child(-n+4) { z-index:10; background:#e0f2fe; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table thead th:nth-child(-n+4) { z-index:9; background:#e0f2fe; }
+    #adminDashboard #dashboardTableWrap .admin-table tbody td:nth-child(-n+4),
+    #adminDashboard #dashboardLemburTableWrap .admin-table tbody td:nth-child(-n+4) { z-index:4; }
     #adminDashboard #dashboardTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4),
-    #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:nth-child(even) td:nth-child(-n+4) { background:#f8fafc; }
+    #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:nth-child(even) td:nth-child(-n+4) { background:#f8fafc; }
     #adminDashboard #dashboardTableWrap .admin-table tbody tr:hover td:nth-child(-n+4),
-    #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:hover td:nth-child(-n+4),
+    #adminDashboard #dashboardLemburTableWrap .admin-table tbody tr:hover td:nth-child(-n+4) { background:#ecfeff; }
+
+    /* Rekap Harian memiliki dua baris header: hanya empat sel identitas
+       pada baris pertama yang sticky. Header tanggal pada baris kedua
+       tidak boleh ikut terkunci sebagai kolom identitas. */
+    #adminDashboard #dashboardDailyTableWrap .daily-table {
+      border-collapse:separate;
+      border-spacing:0;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(-n+4),
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(-n+4) {
+      position:sticky;
+      box-sizing:border-box;
+      background-clip:padding-box;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(1),
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(1) { left:0; width:150px; min-width:150px; max-width:150px; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(2),
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(2) { left:150px; width:92px; min-width:92px; max-width:92px; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(3),
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(3) { left:242px; width:145px; min-width:145px; max-width:145px; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(4),
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(4) { left:387px; width:150px; min-width:150px; max-width:150px; box-shadow:4px 0 7px rgba(15,23,42,.12); }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead th { position:sticky; top:0; z-index:5; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table thead tr:first-child th:nth-child(-n+4) { z-index:10; background:#e0f2fe; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody td:nth-child(-n+4) { z-index:4; }
+    #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:nth-child(even) td:nth-child(-n+4) { background:#f8fafc; }
     #adminDashboard #dashboardDailyTableWrap .daily-table tbody tr:hover td:nth-child(-n+4) { background:#ecfeff; }
-    #adminDashboard #dashboardDailyTableWrap .daily-table thead th:nth-child(-n+4) { background:#e0f2fe; }
     #adminDashboard .daily-status.masuk { background:#dcfce7; color:#166534; }
     #adminDashboard .daily-status.libur { background:#fee2e2; color:#991b1b; }
     #adminDashboard .daily-status.izin { background:#f3e8ff; color:#6b21a8; }
